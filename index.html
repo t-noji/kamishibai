@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+ <meta charset="utf-8">
+ <meta http-equiv="content-language" content="ja">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <meta name="apple-mobile-web-app-capable" content="yes">
+ <meta name="mobile-web-app-capable" content="yes">
+ <meta name="description" content="">
+ <title></title>
+ <script src="lodash.js"></script>
+ <link rel="stylesheet" type="text/css" href="kamishibai.css">
+</head>
+<body>
+ history<br>
+ <textarea id="history" rows=4 cols=80></textarea><br>
+ source<br>
+ <textarea id="source" rows=3 cols=80></textarea><br>
+ <button id="DoButton">Do</button>
+ -><textarea id="result" rows=1 cols=80></textarea>
+</body>
+<script src="lisp.js"></script>
+<script>
+'use strict'
+/// !!! Dirty Functions !!! ///
+function post (url, msg, fn){
+  const xhr = new XMLHttpRequest()
+  xhr.open('POST', url, true)
+  xhr.setRequestHeader('Content-Type','application/json')
+  xhr.onload = ()=> xhr.status === 200 && fn && fn(xhr.responseText)
+  xhr.send(msg)
+}
+
+/// --- Clean Functions --- ///
+const
+ $id = id => document.getElementById(id),
+ $classes = c => document.getElementsByClassName(c),
+ $mk = (type, ...objs) => addIn(document.createElement(type), ...objs),
+ $remove = e=> e && e.parentNode && e.parentNode.removeChild(e),
+ $getClass = (e,c)=> e.getElementsByClassName(c)[0]
+
+/*** Script ***/
+
+$id('DoButton').onclick = e=>{
+  $id('result').value = exec($id('source').value)
+  $id('history').value = $id('history').value + $id('source').value
+  $id('source').value = ''
+}
+$id('source').onkeyup = e=>
+  e.keyCode === 13 && !e.shiftKey &&
+    (e.preventDefault(), $id('DoButton').onclick(e))
+$id('source').onkeypress =e=> e.stopPropagation()
+addIn(n_list, {
+  $id: $id,
+  $classes: $classes,
+  $mk: $mk,
+  $rm: $remove,
+  'append-child': (e,c)=> e.appendChild(c)
+}, _)
+</script>
+<script src="kamishibai.js"></script>
+<script>
+script(document.body, {width: 1280, height: 720})
+</script>
+</html>
