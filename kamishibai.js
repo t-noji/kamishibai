@@ -13,6 +13,8 @@ const
   fukidasi = {className: 'fukidashi',style:
         {position: 'absolute', bottom: '0px', left: '10%', width: '80%', height: '5em',
          color: 'white', textShadow: '0 1px 3px black', fontSize: '140%'}},
+  log = $mk('div', {className: 'log'}),
+  log_x = $mk('div', {className: 'log-x', textContent: 'x'}),
   hito = {}
 
 element.appendChild(background)
@@ -20,10 +22,13 @@ element.appendChild(layer_ele)
 element.appendChild(filter_ele)
 element.appendChild(text_ele)
 element.appendChild(front_ele)
+ log.appendChild(log_x)
+element.appendChild(log)
 parent.appendChild(element)
 
 addOn(n_list,{
   'this-box': element,
+  'front-ele': front_ele,
   hito: hito,
   front: front_ele
 })
@@ -58,11 +63,27 @@ addIn(n_list, {
     layer_ele.appendChild(addIn(...ps.map(p=> hito[name][p])))
   },
   talk: (name,str)=>{
-    const fd =  mix(fukidasi, {textContent: `${name}\n「${str}」`})
+    const tc = {textContent: `${name}\n「${str}」`}
+    const fd =  mix(fukidasi, tc)
     $getClass(layer_ele, name)
     addIn(text_ele, fd)
+    log.appendChild($mk('div', tc))
+    log.scrollTop = log.scrollHeight
   },
-  text: str=> addIn(text_ele, mix(fukidasi, {textContent: str})),
+  text: str=>{
+    const tc = {textContent: str}
+    addIn(text_ele, mix(fukidasi, tc))
+    log.appendChild($mk('div', tc))
+    log.scrollTop = log.scrollHeight
+  },
+  logview: ()=>{
+    text_ele.style.visibility = 'hidden'
+    log.style.visibility = 'visible'
+    log_x.onclick = e=>{
+      text_ele.style.visibility = 'visible'
+      log.style.visibility = 'hidden'
+    }
+  },
   右: {style: {left: '60%'}},
   左: {style: {right: '60%'}},
   中: {style: {top: 0, left: 0, right: 0, margin: 'auto'}},
@@ -87,7 +108,7 @@ exec(`
   (defmacro script-eval (& body)
    \`(let ((l (quote ,@(split-array body "wt")))
            (i 0))
-       (set this-box "onclick"
+       (set front-ele "onclick"
          (lambda (e) (list-progn (nth l (incf i)))))
        (defun onkeypress (e)
          (if (eq (get e "keyCode") 32)
@@ -100,7 +121,7 @@ exec(`
   (defun wt () (undefined))
 
   (defun switch (& body)
-    (set this-box "onclick" through)
+    (set front-ele "onclick" through)
     (def onkeypress through)
     (duo body (lambda (o f)
                 (append-child
@@ -109,7 +130,7 @@ exec(`
                 (append-child front ($mk "br")))))
 
   (defun select (& body)
-    (set this-box "onclick" through)
+    (set front-ele "onclick" through)
     (def onkeypress through)
     (let ((ele (append-child front ($mk "div" {className: "select"}))))
       (duo body (lambda (o f)
