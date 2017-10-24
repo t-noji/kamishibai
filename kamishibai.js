@@ -126,7 +126,7 @@ exec(`
 reader_macro.push(str=>
   str.replace(/^\s*([^\s(]+)「(.*)」/gm, '(talk (str $1) (str $2)) wt '))
 reader_macro.push(str=>
-  str.replace(/^\s*[＊　]([^\s]*)/gm, '(text (str $1)) wt '))
+  str.replace(/^\s*[　]([^\s]*)/gm, '(text (str $1)) wt '))
 
 // 日本語別名登録 //
 addIn(n_list, {

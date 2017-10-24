@@ -39,7 +39,8 @@
   border-left-color: rgba(255,255,255, 0.9);
 }
 .select{ position: absolute; top: 20%; font-size: 140%;}
-.select .switch{ padding-left: 4em; padding-right: 2em;}
+.select .switch{ padding-left: 4em; padding-right: 2em; background-color: white; }
+.select .switch:after{ border-left-color: white; }
 
 .triangle-bottom{
     background:
