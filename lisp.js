@@ -49,7 +49,9 @@ const n_list = addIn(window, {
   duo: duo,
   apply: (f,b)=> f(...b),
   append: (...args)=> [].concat(...args),
-  log: a=> (console.log(a), a)
+  log: a=> (console.log(a), a),
+  object: (...args)=>
+    duo(args).reduce((pre,a)=> addIn(pre, {[a[0]]: a[1]}), {})
 })
 
 const macro ={

@@ -87,7 +87,7 @@ addIn(n_list, {
   右: {style: {left: '60%'}},
   左: {style: {right: '60%'}},
   中: {style: {top: 0, left: 0, right: 0, margin: 'auto'}},
-  上下: {style: {animation: 'vertical 0.5s linear infinite alternate'}},
+  上下: {style: {animation: 'vertical 0.5s ease infinite alternate'}},
   停止: {style: {animation: 'none'}}
 })
 
