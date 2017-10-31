@@ -27,6 +27,8 @@ const {
 } = (()=>{
 
 const n_list = addIn(window, {
+  t: true,
+  nil: null,
   through: a=> a,
   '+': (a,b)=> a+b,
   '-': (a,b)=> a-b,
@@ -150,6 +152,11 @@ const special = {
   progn: (...body)=> body.map(exe)[body.length - 1],
   'list-progn': body=> special.progn(...exe(body)),
   'if': (flag, tbody, fbody=[])=> exe(exe(flag) ? tbody : fbody),
+  and: (a,b)=> exe(a) && exe(b),
+  or:  (a,b)=> exe(a) || exe(b),
+  cond: (...args)=>
+    (tmp=> (args.some(a=> exe(a[0]) && (tmp= exe(a[1]), true))
+           ,tmp))(),
   lambda: (names, ...body)=>{
     const f = (...args)=>
       special.progn(... argsReplace(body, names, args))
