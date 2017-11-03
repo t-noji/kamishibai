@@ -102,8 +102,8 @@ addIn(n_list, {'split-array': splitArray})
 // マクロの順番に注意 / 展開タイミングに影響します /
 exec(`
   (defmacro chapter (name & body)
-   \`(defun ,name ()
-       (script-eval ,@body)))
+   \`(defun ,name (fn)
+       (script-eval ,@body (if fn (fn)))))
 
   (defmacro script-eval (& body)
    \`(let ((l (quote ,@(split-array body "wt")))
@@ -126,7 +126,10 @@ exec(`
     (duo body (lambda (o f)
                 (append-child
                   front
-                  (set ($mk "div" {className: "switch"} o) "onclick" f))
+                  (let ((sw ($mk "div" {className: "switch"} o)))
+                    (set sw "onmouseup" f)
+                    (set sw "ontouchend" f)
+                    sw))
                 (append-child front ($mk "br")))))
 
   (defun select (& body)
@@ -136,10 +139,13 @@ exec(`
       (duo body (lambda (o f)
                   (append-child
                     ele
-                    (set ($mk "div" {className: "switch"} o)
-                      "onclick" (lambda (e)
-                                  ($rm ele)
-                                  (f e))))
+                    (let ((sw ($mk "div" {className: "switch"} o))
+                          (fe (lambda (e)
+                                ($rm ele)
+                                (f e))))
+                      (set sw "onmouseup" fe)
+                      (set sw "ontouchend" fe)
+                      sw))
                   (append-child ele ($mk "br"))))))
 
 `)

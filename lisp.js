@@ -35,7 +35,11 @@ const n_list = addIn(window, {
   '*': (a,b)=> a*b,
   '/': (a,b)=> a/b,
   '%': (a,b)=> a%b,
+  '>': (a,b)=> a>b,
+  '<': (a,b)=> a<b,
   '=': (a,b)=> a===b,
+  '>=': (a,b)=> a>=b,
+  '<=': (a,b)=> a<=b,
   '!=': (a,b)=> a!==b,
   list: (...a)=> a,
   string: String,
@@ -138,7 +142,7 @@ const argsReplace = (l, names =[], vals)=>{
 const replace = (l,name,val)=>{
   const
     closure_obj = {name: name, closure: closure,
-                   val: val.closure === closure ? val.val : val},
+                   val: val && (val.closure === closure ? val.val : val)},
     re = l=>
       Array.isArray(l)
         ? l.map(re)
