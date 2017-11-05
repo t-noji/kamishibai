@@ -54,10 +54,12 @@ addIn(n_list, {
         : filter_ele.style.backgroundImage = `url('${fil.src}')`
       : addIn(filter_ele,{style:{backgroundColor: 'transparent',
                                  backgroundImage: 'none'}}),
-  clear: (...arg)=>
-    arg.length
-      ? arg.forEach(a=> $remove(layer_ele.getElementsByClassName(a)[0]))
-      :  [... layer_ele.children, $getClass(element, 'select')].forEach($remove),
+  clear:
+    ((re= e=> e && (e.style.animation = 'none', $remove(e)))=>
+      (...arg)=>
+        arg.length
+          ? arg.forEach(a=> re(layer_ele.getElementsByClassName(a)[0]))
+          :  [... layer_ele.children, $getClass(element, 'select')].forEach(re))(),
   show: (name, ...ps)=>{
     clear(name)
     layer_ele.appendChild(addIn(...ps.map(p=> hito[name][p])))
