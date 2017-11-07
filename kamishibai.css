@@ -68,3 +68,6 @@
 .standard:before { content: ""; display: block; padding-top: 75%; }
 .cinesco { position: relative; width: 100%; }
 .cinesco:before { content: ""; display: block; padding-top: 42.5531915%; }
+.rotate-wide { position: relative; width: 100%; }
+.rotate-wide:before { content: ""; display: block; padding-top: 177.7777%; }
+
