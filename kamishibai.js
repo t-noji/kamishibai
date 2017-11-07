@@ -1,10 +1,9 @@
 'use strict'
-const script = (parent, obj)=>{
+const script = parent=>{
 
 const
-  element = $mk('div',{style: {position: 'absolute',
-                  width:  ((obj && obj.width)  || 640) +'px',
-                  height: ((obj && obj.height) || 480) +'px'}}),
+  wrapper = $mk('div'),
+  element = $mk('div',{style: {position: 'absolute', top: 0, bottom: 0, left: 0, right: 0}}),
   background = $mk('img',{style:{position: 'absolute', height: '100%', width: '100%'}}),
   layer_ele = $mk('div',{style:{position: 'absolute',overflow: 'hidden', height: '100%', width: '100%'}}),
   filter_ele = $mk('div',{style:{position: 'absolute', height: '100%', width: '100%'}}),
@@ -24,7 +23,8 @@ element.appendChild(text_ele)
 element.appendChild(front_ele)
  log.appendChild(log_x)
 element.appendChild(log)
-parent.appendChild(element)
+wrapper.appendChild(element)
+parent.appendChild(wrapper)
 
 addOn(n_list,{
   'this-box': element,
@@ -34,8 +34,11 @@ addOn(n_list,{
 })
 addIn(n_list, {
   setParent: parent=> parent.appendChild(element),
-  'resize-box': (w,h)=>
-    addIn(element.style, {width: w +'px', height: h +'px'}),
+  'aspect-ratio': ratio=> wrapper.classList.add(ratio),
+  'resize-box': (w,h)=>{
+    wrapper.classList.remove('wide','standard','cinesco')
+    addIn(element.style, {width: w, height: h})
+  },
   'resize-font': a=> element.style.fontSize = a,
   image: src=> addIn(new Image(), {src: src}),
   bg: (img,animation)=>{
@@ -170,4 +173,6 @@ addIn(macro, {
   章: macro.chapter,
 })
 
+///init///
+n_list['aspect-ratio']('wide')
 }
