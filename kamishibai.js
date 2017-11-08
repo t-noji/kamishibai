@@ -32,8 +32,11 @@ addOn(n_list,{
   hito: hito,
   front: front_ele
 })
+const makeSaveData = (...datas)=>
+    ['chapter-now', 'chapter-now-num', ...datas]
+      .reduce((pre,d)=> addIn(pre, {[d]: n_list[d]}), {})
 addIn(n_list, {
-  setParent: parent=> parent.appendChild(element),
+  setParent: parent=> parent.appendChild(wrapper),
   'aspect-ratio': ratio=> wrapper.classList.add(ratio),
   'resize-box': (w,h)=>{
     wrapper.classList.remove('wide','standard','cinesco')
@@ -93,7 +96,21 @@ addIn(n_list, {
   左: {style: {right: '60%'}},
   中: {style: {top: 0, left: 0, right: 0, margin: 'auto'}},
   上下: {style: {animation: 'vertical 0.5s ease infinite alternate'}},
-  停止: {style: {animation: 'none'}}
+  停止: {style: {animation: 'none'}},
+  'quick-save': (...args)=>
+    n_list['chapter-now']
+      ? localStorage.setItem('quicksave',
+            JSON.stringify(makeSaveData(...args)))
+      : alert('現在セーブはできません'),
+  'quick-load': ()=>{
+    const data = JSON.parse(localStorage.getItem('quicksave'))
+    if (data) {
+      const cn  = data['chapter-now']
+      const cnn = data['chapter-now-num']
+      exec(`(script-eval ${cn} ${cnn})`)
+    }
+    else alert('セーブデータが無いよ')
+  }
 })
 
 
@@ -107,18 +124,23 @@ addIn(n_list, {'split-array': splitArray})
 // マクロの順番に注意 / 展開タイミングに影響します /
 exec(`
   (defmacro chapter (name & body)
-   \`(defun ,name (fn)
-       (script-eval ,@body (if fn (fn)))))
+   \`(def ,name (quote (def chapter-now (str ,name)) ,@body)))
 
-  (defmacro script-eval (& body)
-   \`(let ((l (quote ,@(split-array body "wt")))
-           (i 0))
-       (set front-ele "onclick"
-         (lambda (e) (list-progn (nth l (incf i)))))
-       (defun onkeypress (e)
-         (if (eq (get e "keyCode") 32)
-           (list-progn (nth l (incf i)))))
-       (list-progn (first l))))
+  (defun script-eval (ll index)
+    (let ((l (split-array ll "wt"))
+          (i (or index 0)))
+       (if index
+         (forEach (log (slice l 0 index))
+           (lambda (a) (list-progn a))))
+       (let ((sc (lambda (i)
+                   (def chapter-now-num i)
+                   (list-progn (nth l i)))))
+         (set front-ele "onclick"
+           (lambda (e) (sc (incf i))))
+         (defun onkeypress (e)
+           (if (eq (get e "keyCode") 32)
+             (sc (incf i))))
+         (sc 0))))
 
   (defmacro shows (& body)
    \`(show ,@(map body (lambda (b) (list 'str b)))))
