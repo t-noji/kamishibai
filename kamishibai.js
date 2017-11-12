@@ -3,15 +3,13 @@ const script = parent=>{
 
 const
   wrapper = $mk('div'),
-  element = $mk('div',{style: {position: 'absolute', top: 0, bottom: 0, left: 0, right: 0}}),
+  element = $mk('div',{style: {position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, userSelect: 'none'}}),
   background = $mk('img',{style:{position: 'absolute', height: '100%', width: '100%'}}),
   layer_ele = $mk('div',{style:{position: 'absolute',overflow: 'hidden', height: '100%', width: '100%'}}),
   filter_ele = $mk('div',{style:{position: 'absolute', height: '100%', width: '100%'}}),
   front_ele = $mk('div',{style:{position: 'absolute', height: '100%', width: '100%'}}),
-  text_ele = $mk('div',{style:{position: 'absolute', height: '100%', width: '100%'}}),
-  fukidasi = {className: 'fukidashi',style:
-        {position: 'absolute', bottom: '0px', left: '10%', width: '80%', height: '5em',
-         color: 'white', textShadow: '0 1px 3px black', fontSize: '140%'}},
+  text_ele = $mk('div'),
+  fukidasi = {className: 'fukidashi'},
   log = $mk('div', {className: 'log'}),
   log_x = $mk('div', {className: 'log-x', textContent: 'x'}),
   hito = {}
@@ -26,6 +24,7 @@ element.appendChild(log)
 wrapper.appendChild(element)
 parent.appendChild(wrapper)
 
+n_list.show_now = {}
 addOn(n_list,{
   'this-box': element,
   'front-ele': front_ele,
@@ -37,9 +36,12 @@ const makeSaveData = (...datas)=>
       .reduce((pre,d)=> addIn(pre, {[d]: n_list[d]}), {})
 addIn(n_list, {
   setParent: parent=> parent.appendChild(wrapper),
-  'aspect-ratio': ratio=> wrapper.classList.add(ratio),
+  'aspect-ratio': ratio=>{
+    wrapper.classList.remove('wide','standard','cinesco','rotate-wide')
+    wrapper.classList.add(ratio)
+  },
   'resize-box': (w,h)=>{
-    wrapper.classList.remove('wide','standard','cinesco')
+    wrapper.classList.remove('wide','standard','cinesco','rotate-wide')
     addIn(element.style, {width: w, height: h})
   },
   'resize-font': a=> element.style.fontSize = a,
@@ -48,6 +50,7 @@ addIn(n_list, {
     background.src = img.src
     background.style.animation = 'none'
     background.style.animation = animation || 'fadein 0.75s'
+    n_list.bg_now = Object.keys(n_list).find(k=> img === n_list[k] && k)
   },
   make: (name, ...ks)=>
     hito[name] = duo(ks).reduce((pre,k)=>
@@ -61,14 +64,24 @@ addIn(n_list, {
       : addIn(filter_ele,{style:{backgroundColor: 'transparent',
                                  backgroundImage: 'none'}}),
   clear:
-    ((re= e=> e && (e.style.animation = 'none', $remove(e)))=>
+    ((re= e=> e && (e.style.animation = 'none',
+                    $remove(e)))=>
       (...arg)=>
         arg.length
-          ? arg.forEach(a=> re(layer_ele.getElementsByClassName(a)[0]))
-          :  [... layer_ele.children, $getClass(element, 'select')].forEach(re))(),
+          ? arg.forEach(a=> (re($getClass(layer_ele, a)),
+                             delete n_list.show_now[a]))
+          : ([... layer_ele.children, $getClass(element, 'select')]
+              .forEach(re),
+             n_list.show_now = {})
+  )(),
   show: (name, ...ps)=>{
     clear(name)
     layer_ele.appendChild(addIn(...ps.map(p=> hito[name][p])))
+    n_list.show_now[name] = ps
+  },
+  reshow: ()=>{
+    Object.keys(n_list.show_now).forEach(k=> show(k, ...n_list.show_now[k]))
+    n_list.bg_now && bg(n_list[n_list.bg_now])
   },
   talk: (name,str)=>{
     const tc = {textContent: `${name}\n「${str}」`}
@@ -129,7 +142,7 @@ exec(`
   (defun script-eval (ll index)
     (let ((l (split-array ll "wt"))
           (i (or index 0)))
-       (if index
+       (if (and index (< index (length l)))
          (forEach (log (slice l 0 index))
            (lambda (a) (list-progn a))))
        (let ((sc (lambda (i)

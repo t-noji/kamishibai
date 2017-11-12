@@ -14,6 +14,9 @@
 
 .fukidashi{
   white-space: pre-wrap;
+  height: 5em; width: 80%;
+  position: absolute; bottom: 0px; left: 10%;
+  color: white; text-shadow: 0 1px 3px black; font-size: 140%;
 }
 .log {
   position: absolute; width: 100%; height: 100%;
@@ -66,8 +69,10 @@
 .wide:before { content: ""; display: block; padding-top: 56.25%; }
 .standard { position: relative; width: 100%; }
 .standard:before { content: ""; display: block; padding-top: 75%; }
+.standard .fukidashi{ left: 5%; width: 90%; }
 .cinesco { position: relative; width: 100%; }
 .cinesco:before { content: ""; display: block; padding-top: 42.5531915%; }
 .rotate-wide { position: relative; width: 100%; }
 .rotate-wide:before { content: ""; display: block; padding-top: 177.7777%; }
-
+.rotate-wide .fukidashi{ left: 2.5%; width: 95%; height: 8em; }
+.rotate-wide .select{ bottom: 10em; }

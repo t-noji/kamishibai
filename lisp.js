@@ -28,6 +28,8 @@ const {
 
 const n_list = addIn(window, {
   t: true,
+  'true': true,
+  'false': false,
   nil: null,
   through: a=> a,
   '+': (a,b)=> a+b,
@@ -56,6 +58,7 @@ const n_list = addIn(window, {
   apply: (f,b)=> f(...b),
   append: (...args)=> [].concat(...args),
   log: a=> (console.log(a), a),
+  length: l=> l.length,
   object: (...args)=>
     duo(args).reduce((pre,a)=> addIn(pre, {[a[0]]: a[1]}), {})
 })
@@ -230,7 +233,8 @@ const reader_macro = [
   readerFirstMacro("'", 'quote'),
   readerFirstMacro('`', 'backquote'),
   str=> str.replace(/,@/g, '@ '),
-  readerFirstMacro(',', 'unquote')
+  readerFirstMacro(',', 'unquote'),
+  readerFirstMacro('#', 'lambda')
 ]
 
 const exec = str=>{
