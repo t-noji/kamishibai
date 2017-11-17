@@ -50,7 +50,7 @@ addIn(n_list, {
     background.src = img.src
     background.style.animation = 'none'
     background.style.animation = animation || 'fadein 0.75s'
-    n_list.bg_now = Object.keys(n_list).find(k=> img === n_list[k] && k)
+    n_list.bg_now = Object.keys(n_list).find(k=> (img === n_list[k]) && k)
   },
   make: (name, ...ks)=>
     hito[name] = duo(ks).reduce((pre,k)=>
@@ -79,10 +79,10 @@ addIn(n_list, {
     layer_ele.appendChild(addIn(...ps.map(p=> hito[name][p])))
     n_list.show_now[name] = ps
   },
-  reshow: ()=>{
-    Object.keys(n_list.show_now).forEach(k=> show(k, ...n_list.show_now[k]))
-    n_list.bg_now && bg(n_list[n_list.bg_now])
-  },
+  'now-show': ()=>[
+    ... Object.keys(n_list.show_now).map(k=>["shows",k, ...n_list.show_now[k]]),
+    ... (n_list.bg_now ? [["bg", n_list.bg_now]] : [])
+  ],
   talk: (name,str)=>{
     const tc = {textContent: `${name}\n「${str}」`}
     const fd =  mix(fukidasi, tc)
@@ -144,10 +144,10 @@ exec(`
           (i (or index 0)))
        (if (and index (< index (length l)))
          (forEach (log (slice l 0 index))
-           (lambda (a) (list-progn a))))
+           (lambda (a) (eval a))))
        (let ((sc (lambda (i)
                    (def chapter-now-num i)
-                   (list-progn (nth l i)))))
+                   (eval (nth l i)))))
          (set front-ele "onclick"
            (lambda (e) (sc (incf i))))
          (defun onkeypress (e)
@@ -188,6 +188,7 @@ exec(`
                       sw))
                   (append-child ele ($mk "br"))))))
 
+  (defun reshow () (eval (now-show)))
 `)
 
 reader_macro.push(str=>

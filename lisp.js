@@ -157,7 +157,7 @@ const replace = (l,name,val)=>{
 // 特殊式
 const special = {
   progn: (...body)=> body.map(exe)[body.length - 1],
-  'list-progn': body=> special.progn(...exe(body)),
+  eval: body=> special.progn(...macroexpand(exe(body))),
   'if': (flag, tbody, fbody=[])=> exe(exe(flag) ? tbody : fbody),
   and: (a,b)=> exe(a) && exe(b),
   or:  (a,b)=> exe(a) || exe(b),
