@@ -4,6 +4,7 @@ const
     (arg.forEach(a=>
       a && Object.keys(a).forEach(k=>
         a[k] instanceof Object && typeof a[k] !== 'function'
+          && (!Array.isArray(a[k])) && !(a[k] instanceof HTMLElement)
           ? obj[k]
             ? addIn(obj[k], a[k])
             : addIn(obj[k] = {}, a[k])
@@ -17,7 +18,9 @@ const
   even = n=> !(n%2),
   odd = n=> n%2,
   duo = (l, f=(x,y)=>[x,y])=>
-    l.reduce((pre,a,i)=> pre.concat(i%2 ? [] : [f(a, l[i+1])]) ,[])
+    l.reduce((pre,a,i)=> pre.concat(i%2 ? [] : [f(a, l[i+1])]) ,[]),
+  kv2obj = (keys, values, ori={})=>
+    keys.reduce((pre,key,i)=>(pre[key] = values[i], pre), ori)
 
 const {
   n_list, // lisp内で利用可能な関数リスト
@@ -66,7 +69,7 @@ const n_list = addIn(window, {
 const macro ={
   defmacro: (name, namelist, body)=>{
     macro[name] = (...args)=>
-      macroexpand(exe(argsReplace(body, namelist, args)))
+      macroexpand(exe(args2env([n_list], namelist, args), body))
     return ['undefined']
   },
   backquote:
@@ -81,7 +84,7 @@ const macro ={
                 : ['list', f(i)])].filter(Boolean),
      bq = s=>
        !Array.isArray(s)
-         ? (typeof s === 'string' && s !== '@') || s.closure === s.closure
+         ? typeof s === 'string' && s !== '@'
            ? ['quote', s]
            : s
          : s.length === 0
@@ -99,93 +102,82 @@ const macro ={
 }
 
 const
-  closure = {}, // closure_key
   macroexpand = b=> // ((a 1)) 
     !Array.isArray(b) || b.length === 0
-      ? b.closure === closure
-        ? b.name
-        : b
+      ? b
       : b[0] in macro
         ? macro[b[0]](... b.slice(1).map(macroexpand))
         : b.map(macroexpand),
-    
-  found = str=>
-    typeof str === 'function'
-      ? str
-      : str.closure === closure
-        ? str.val
-        : str.split('.').reduce((o,s)=>
-            (o[s] === undefined
-              && console.log('無いよ:', str),
-             o[s].bind)
-               ? o[s].bind(o) 
-               : o[s], n_list),
-  exe = b=>
+  found = 
+    ((ff = (ss,base)=> ss.reduce((o,s)=>
+          o[s] && (o[s].bind
+                    ? o[s].bind(o) 
+                    : o[s]), 
+          base))=>
+      (env,str)=>{
+        if (typeof str === 'function') return str
+        const ss = str.split('.')
+        const ef = env.find(e=> ss[0] in e)
+        if (ef === undefined) console.log('無いよ:', str, '環境', env)
+        return ff(ss.slice(1), ef[ss[0]])
+      })(),
+  exe = (env,b)=>
     !Array.isArray(b)
-      ? typeof b === 'string' || b.closure
-        ? found(b)
+      ? typeof b === 'string'
+        ? found(env,b)
         : b
       : b[0] in special
-          ? special[b[0]](... b.slice(1))
+          ? special[b[0]](env, ... b.slice(1))
           : ((f = (Array.isArray(b[0])
                    ? exe
-                   : found)(b[0]))=>
+                   : found)(env,b[0]))=>
               (typeof f !== 'function'
                  && console.log('関数じゃないよ:', b[0], 'from', b),
-               f(... b.slice(1).map(exe))))()
+               f(... b.slice(1).map((b)=>exe(env,b)))))()
 
-const argsReplace = (l, names =[], vals)=>{
+const args2env = (env, names=[], vals=[])=>{
   const slice_index = (names.indexOf('&') +1) || names.length
-  return names.slice(0, slice_index).reduce((pre,name,i)=>
-    name === '&'
-      ? replace(pre, names[i+1], vals.slice(i))
-      : replace(pre, name, vals[i]),
-    l)
+  return [names.slice(0, slice_index).reduce((pre,name,i)=>
+    (name === '&'
+      ? pre[names[i+1]] = vals.slice(i)
+      : pre[name] = vals[i],
+     pre),
+    {})].concat(env)
 }
-const replace = (l,name,val)=>{
-  const
-    closure_obj = {name: name, closure: closure,
-                   val: val && (val.closure === closure ? val.val : val)},
-    re = l=>
-      Array.isArray(l)
-        ? l.map(re)
-        : l === name || (l.closure === closure && l.name === name)
-          ? closure_obj
-          : l
-  return re(l)
-}
+
 // 特殊式
 const special = {
-  progn: (...body)=> body.map(exe)[body.length - 1],
-  eval: body=> special.progn(...macroexpand(exe(body))),
-  'if': (flag, tbody, fbody=[])=> exe(exe(flag) ? tbody : fbody),
-  and: (a,b)=> exe(a) && exe(b),
-  or:  (a,b)=> exe(a) || exe(b),
-  cond: (...args)=>
-    (tmp=> (args.some(a=> exe(a[0]) && (tmp= exe(a[1]), true))
+  progn: (env, ...body)=> body.map((b)=>exe(env, b))[body.length - 1],
+  eval: (env,body)=> special.progn(env, ...macroexpand(exe(env,body))),
+  'if': (env,flag, tbody, fbody=[])=> exe(env, exe(env,flag) ? tbody : fbody),
+  and: (env,a,b)=> exe(env,a) && exe(env,b),
+  or:  (env,a,b)=> exe(env,a) || exe(env,b),
+  cond: (env, ...args)=>
+    (tmp=> (args.some(a=> exe(env,a[0]) && (tmp= exe(env,a[1]), true))
            ,tmp))(),
-  lambda: (names, ...body)=>{
+  lambda: (env, names, ...body)=>{
+    //console.log(env, body)
     const f = (...args)=>
-      special.progn(... argsReplace(body, names, args))
+      special.progn(args2env(env, names, args), ...body)
     f.toString = ()=> `${names}-> `+ JSON.stringify(body)
     return f
   },
-  def: (...arg)=>
+  def: (env, ...arg)=>
     arg.forEach((a,i)=>
       !(i%2) // hit 0 2 4 ...
       && (a.split('.').reduce(
         (pre,s,j,aa)=>
           pre[s] = aa[j+1]
                       ? pre[s] || {}
-                      : exe(arg[i+1]),
+                      : exe(env,arg[i+1]),
         n_list))),
-  'let': (na, ...body)=>
-      special.lambda(na.map(a=>a[0]), ...body)
-        (...na.map(a=> exe(a[a.length -1]))),
-  setq: (cobj, body)=> exe(['quote', cobj]).val = exe(body),
-  quote: (...s)=> s.length === 1 ? s[0] : s,
-  str: String,
-  'undefined': ()=> undefined
+  'let': (env,na, ...body)=>
+      special.lambda(env, na.map(a=>a[0]), ...body)
+        (...na.map(a=> exe(env, a[a.length -1]))),
+  setq: (env, cobj, body)=> env.find(e=> cobj in e)[cobj] = exe(env, body),
+  quote: (env, ...s)=> s.length === 1 ? s[0] : s,
+  str: (env, ...arg)=> String(...arg),
+  'undefined': (env)=> undefined
 }
 
 // 評価
@@ -261,7 +253,7 @@ const exec = str=>{
    jp = JSON.parse(`[${json}]`),
    expanded = jp.map(macroexpand)
   console.log('expanded macro:',expanded)
-  return special.progn(... expanded)
+  return special.progn([n_list], ...expanded)
 }
 
 // lisp //

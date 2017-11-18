@@ -130,7 +130,7 @@ addIn(n_list, {
 const splitArray = (l,key,i)=>
   (i= l.indexOf(key)) === -1
     ? [l]
-    : concat([l.slice(0, i)], splitArray(l.slice(i +1), key))
+    : [].concat([l.slice(0, i)], splitArray(l.slice(i +1), key))
 
 addIn(n_list, {'split-array': splitArray})
 
@@ -143,13 +143,10 @@ exec(`
     (let ((l (split-array ll "wt"))
           (i (or index 0)))
        (if (and index (< index (length l)))
-         (forEach (log (slice l 0 index))
-           (lambda (a) (eval a))))
-       (let ((sc (lambda (i)
-                   (def chapter-now-num i)
-                   (eval (nth l i)))))
-         (set front-ele "onclick"
-           (lambda (e) (sc (incf i))))
+         (forEach (slice l 0 index) #((a) (eval a))))
+       (let ((sc #((i) (def chapter-now-num i)
+                       (eval (nth l i)))))
+         (set front-ele "onclick" #(() (sc (incf i))))
          (defun onkeypress (e)
            (if (eq (get e "keyCode") 32)
              (sc (incf i))))
