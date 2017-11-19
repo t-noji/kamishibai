@@ -5,7 +5,7 @@ const
       a && Object.keys(a).forEach(k=>
         a[k] instanceof Object && typeof a[k] !== 'function'
           && (!Array.isArray(a[k])) && !(a[k] instanceof HTMLElement)
-          ? obj[k]
+          ? k in obj
             ? addIn(obj[k], a[k])
             : addIn(obj[k] = {}, a[k])
           : obj[k] = a[k])),
@@ -46,6 +46,7 @@ const n_list = addIn(window, {
   '>=': (a,b)=> a>=b,
   '<=': (a,b)=> a<=b,
   '!=': (a,b)=> a!==b,
+  'in': (a,b)=> a in b,
   list: (...a)=> a,
   string: String,
   'add-in': addIn,
@@ -109,10 +110,9 @@ const
         ? macro[b[0]](... b.slice(1).map(macroexpand))
         : b.map(macroexpand),
   found = 
-    ((ff = (ss,base)=> ss.reduce((o,s)=>
-          o[s] && (o[s].bind
-                    ? o[s].bind(o) 
-                    : o[s]), 
+    ((ff= (ss,base)=>
+      ss.reduce(
+          (o,s)=> s in o && ("bind" in o[s] ? o[s].bind(o) : o[s]), 
           base))=>
       (env,str)=>{
         if (typeof str === 'function') return str
@@ -128,12 +128,12 @@ const
         : b
       : b[0] in special
           ? special[b[0]](env, ... b.slice(1))
-          : ((f = (Array.isArray(b[0])
+          : ((f= (Array.isArray(b[0])
                    ? exe
                    : found)(env,b[0]))=>
               (typeof f !== 'function'
                  && console.log('関数じゃないよ:', b[0], 'from', b),
-               f(... b.slice(1).map((b)=>exe(env,b)))))()
+               f(... b.slice(1).map(b=>exe(env,b)))))()
 
 const args2env = (env, names=[], vals=[])=>{
   const slice_index = (names.indexOf('&') +1) || names.length
@@ -156,7 +156,6 @@ const special = {
     (tmp=> (args.some(a=> exe(env,a[0]) && (tmp= exe(env,a[1]), true))
            ,tmp))(),
   lambda: (env, names, ...body)=>{
-    //console.log(env, body)
     const f = (...args)=>
       special.progn(args2env(env, names, args), ...body)
     f.toString = ()=> `${names}-> `+ JSON.stringify(body)
@@ -174,7 +173,9 @@ const special = {
   'let': (env,na, ...body)=>
       special.lambda(env, na.map(a=>a[0]), ...body)
         (...na.map(a=> exe(env, a[a.length -1]))),
-  setq: (env, cobj, body)=> env.find(e=> cobj in e)[cobj] = exe(env, body),
+  setq: (env, cobj, body)=>
+    ((cs= cobj.split('.'))=>
+      cs.slice(0, -1).reduce((o,c)=> c in o ? o[c] : o[c] = {}, env.find(e=> cs[0] in e))[cs[cs.length -1]] = exe(env, body))(),
   quote: (env, ...s)=> s.length === 1 ? s[0] : s,
   str: (env, ...arg)=> String(...arg),
   'undefined': (env)=> undefined

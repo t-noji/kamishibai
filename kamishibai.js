@@ -27,7 +27,6 @@ parent.appendChild(wrapper)
 n_list.show_now = {}
 addOn(n_list,{
   'this-box': element,
-  'front-ele': front_ele,
   hito: hito,
   front: front_ele
 })
@@ -146,42 +145,40 @@ exec(`
          (forEach (slice l 0 index) #((a) (eval a))))
        (let ((sc #((i) (def chapter-now-num i)
                        (eval (nth l i)))))
-         (set front-ele "onclick" #(() (sc (incf i))))
+         (setq front.onclick #(() (sc (incf i))))
          (defun onkeypress (e)
            (if (eq (get e "keyCode") 32)
              (sc (incf i))))
          (sc 0))))
 
   (defmacro shows (& body)
-   \`(show ,@(map body (lambda (b) (list 'str b)))))
+   \`(show ,@(map body #((b) (list 'str b)))))
 
   (defun wt () (undefined))
 
   (defun switch (& body)
-    (set front-ele "onclick" through)
+    (setq front.onclick through)
     (def onkeypress through)
-    (duo body (lambda (o f)
+    (duo body #((o f)
                 (append-child
                   front
                   (let ((sw ($mk "div" {className: "switch"} o)))
-                    (set sw "onmouseup" f)
-                    (set sw "ontouchend" f)
+                    (setq sw.onclick #((e) (e.stopPropagation)
+                                           (f e)))
                     sw))
                 (append-child front ($mk "br")))))
 
   (defun select (& body)
-    (set front-ele "onclick" through)
+    (setq front.onclick through)
     (def onkeypress through)
     (let ((ele (append-child front ($mk "div" {className: "select"}))))
-      (duo body (lambda (o f)
+      (duo body #((o f)
                   (append-child
                     ele
-                    (let ((sw ($mk "div" {className: "switch"} o))
-                          (fe (lambda (e)
-                                ($rm ele)
-                                (f e))))
-                      (set sw "onmouseup" fe)
-                      (set sw "ontouchend" fe)
+                    (let ((sw ($mk "div" {className: "switch"} o)))
+                      (setq sw.onclick #((e) ($rm ele)
+                                             (e.stopPropagation)
+                                             (f e)))
                       sw))
                   (append-child ele ($mk "br"))))))
 
