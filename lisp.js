@@ -35,10 +35,10 @@ const n_list = addIn(window, {
   'false': false,
   nil: null,
   through: a=> a,
-  '+': (a,b)=> a+b,
-  '-': (a,b)=> a-b,
-  '*': (a,b)=> a*b,
-  '/': (a,b)=> a/b,
+  '+': (x, ...args)=> args.reduce((p,a)=> p + a, x),
+  '-': (x, ...args)=> args.reduce((p,a)=> p - a, x),
+  '*': (x, ...args)=> args.reduce((p,a)=> p * a, x),
+  '/': (x, ...args)=> args.reduce((p,a)=> p / a, x),
   '%': (a,b)=> a%b,
   '>': (a,b)=> a>b,
   '<': (a,b)=> a<b,
@@ -112,7 +112,9 @@ const
   found = 
     ((ff= (ss,base)=>
       ss.reduce(
-          (o,s)=> s in o && ("bind" in o[s] ? o[s].bind(o) : o[s]), 
+          (o,s)=> s in o && (o[s]["bind"] // inの場合数字などに対応不可
+                              ? o[s].bind(o)
+                              : o[s]),
           base))=>
       (env,str)=>{
         if (typeof str === 'function') return str

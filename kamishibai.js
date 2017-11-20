@@ -147,7 +147,7 @@ exec(`
                        (eval (nth l i)))))
          (setq front.onclick #(() (sc (incf i))))
          (defun onkeypress (e)
-           (if (eq (get e "keyCode") 32)
+           (if (= e.keyCode 32)
              (sc (incf i))))
          (sc 0))))
 
