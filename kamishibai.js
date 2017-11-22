@@ -1,5 +1,5 @@
 'use strict'
-const script = parent=>{
+const kamishibai = parent=>{
 
 const
   wrapper = $mk('div'),
@@ -25,16 +25,17 @@ wrapper.appendChild(element)
 parent.appendChild(wrapper)
 
 n_list.show_now = {}
-addOn(n_list,{
-  'this-box': element,
-  hito: hito,
-  front: front_ele
-})
+let title = ''
 const makeSaveData = (...datas)=>
     ['chapter-now', 'chapter-now-num', ...datas]
       .reduce((pre,d)=> addIn(pre, {[d]: n_list[d]}), {})
+
 addIn(n_list, {
+  'this-box': element,
+  hito: hito,
+  front: front_ele,
   setParent: parent=> parent.appendChild(wrapper),
+  title: s=> title = s,
   'aspect-ratio': ratio=>{
     wrapper.classList.remove('wide','standard','cinesco','rotate-wide')
     wrapper.classList.add(ratio)
@@ -53,7 +54,7 @@ addIn(n_list, {
   },
   make: (name, ...ks)=>
     hito[name] = duo(ks).reduce((pre,k)=>
-      addOn(pre, {[k[0]]: addIn(k[1],
+      addIn(pre, {[k[0]]: addIn(k[1],
         {className: name, style: {position: 'absolute', width: 'auto'}})}), {}),
   filter: fil=>
     fil
@@ -111,11 +112,11 @@ addIn(n_list, {
   停止: {style: {animation: 'none'}},
   'quick-save': (...args)=>
     n_list['chapter-now']
-      ? localStorage.setItem('quicksave',
+      ? localStorage.setItem('quicksave-'+ title,
             JSON.stringify(makeSaveData(...args)))
       : alert('現在セーブはできません'),
   'quick-load': ()=>{
-    const data = JSON.parse(localStorage.getItem('quicksave'))
+    const data = JSON.parse(localStorage.getItem('quicksave-'+ title))
     if (data) {
       const cn  = data['chapter-now']
       const cnn = data['chapter-now-num']
@@ -147,8 +148,7 @@ exec(`
                        (eval (nth l i)))))
          (setq front.onclick #(() (sc (incf i))))
          (defun onkeypress (e)
-           (if (= e.keyCode 32)
-             (sc (incf i))))
+           (if (= e.keyCode 32) (sc (incf i))))
          (sc 0))))
 
   (defmacro shows (& body)
@@ -165,8 +165,7 @@ exec(`
                   (let ((sw ($mk "div" {className: "switch"} o)))
                     (setq sw.onclick #((e) (e.stopPropagation)
                                            (f e)))
-                    sw))
-                (append-child front ($mk "br")))))
+                    sw)))))
 
   (defun select (& body)
     (setq front.onclick through)
@@ -179,8 +178,7 @@ exec(`
                       (setq sw.onclick #((e) ($rm ele)
                                              (e.stopPropagation)
                                              (f e)))
-                      sw))
-                  (append-child ele ($mk "br"))))))
+                      sw))))))
 
   (defun reshow () (eval (now-show)))
 `)

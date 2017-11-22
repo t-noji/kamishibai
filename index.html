@@ -22,22 +22,19 @@
 <script src="lisp.js"></script>
 <script>
 'use strict'
-/// !!! Dirty Functions !!! ///
-function post (url, msg, fn){
+const post = (url, msg, fn)=>{
   const xhr = new XMLHttpRequest()
   xhr.open('POST', url, true)
   xhr.setRequestHeader('Content-Type','application/json')
   xhr.onload = ()=> xhr.status === 200 && fn && fn(xhr.responseText)
   xhr.send(msg)
 }
-
-/// --- Clean Functions --- ///
 const
- $id = id => document.getElementById(id),
- $classes = c => document.getElementsByClassName(c),
- $mk = (type, ...objs) => addIn(document.createElement(type), ...objs),
- $remove = e=> e && e.parentNode && e.parentNode.removeChild(e),
- $getClass = (e,c)=> e.getElementsByClassName(c)[0]
+  $id = id=> document.getElementById(id),
+  $classes = c=> document.getElementsByClassName(c),
+  $mk = (type, ...objs)=> addIn(document.createElement(type), ...objs),
+  $remove = e=> e && e.parentNode && e.parentNode.removeChild(e),
+  $getClass = (e,c)=> e.getElementsByClassName(c)[0]
 
 /*** Script ***/
 
@@ -60,6 +57,6 @@ addIn(n_list, {
 </script>
 <script src="kamishibai.js"></script>
 <script>
-script(document.body)
+kamishibai(document.body)
 </script>
 </html>

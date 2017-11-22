@@ -17,10 +17,16 @@ const
      obj),
   even = n=> !(n%2),
   odd = n=> n%2,
-  duo = (l, f=(x,y)=>[x,y])=>
-    l.reduce((pre,a,i)=> pre.concat(i%2 ? [] : [f(a, l[i+1])]) ,[]),
+  duo = (l, f=(x,y,index)=>[x,y])=>
+    l.reduce((pre,a,i)=> pre.concat(i%2 ? [] : [f(a, l[i+1], i/2)]) ,[]),
   kv2obj = (keys, values, ori={})=>
-    keys.reduce((pre,key,i)=>(pre[key] = values[i], pre), ori)
+    keys.reduce((pre,key,i)=>(pre[key] = values[i], pre), ori),
+  typeOf = x=>
+    x === null            ? 'null':
+    x === undefined       ? 'undefined':
+    typeof x === 'object' ? x.constructor.name
+                            || Object.prototype.toString.call(x).slice(8, -1):
+                            typeof x
 
 const {
   n_list, // lisp内で利用可能な関数リスト
@@ -42,6 +48,7 @@ const n_list = addIn(window, {
   '%': (a,b)=> a%b,
   '>': (a,b)=> a>b,
   '<': (a,b)=> a<b,
+  'not': a=>!a,
   '=': (a,b)=> a===b,
   '>=': (a,b)=> a>=b,
   '<=': (a,b)=> a<=b,
@@ -64,7 +71,8 @@ const n_list = addIn(window, {
   log: a=> (console.log(a), a),
   length: l=> l.length,
   object: (...args)=>
-    duo(args).reduce((pre,a)=> addIn(pre, {[a[0]]: a[1]}), {})
+    duo(args).reduce((pre,a)=> addIn(pre, {[a[0]]: a[1]}), {}),
+  'typeof': typeOf 
 })
 
 const macro ={

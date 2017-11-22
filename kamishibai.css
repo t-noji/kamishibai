@@ -34,7 +34,7 @@
 .switch{
   cursor: pointer;
   position: relative;
-  display: inline-block;
+  display: table;
   height: 1.25em;
   background-color: rgba(255,255,255, 0.95);
   opacity: 0.5;
