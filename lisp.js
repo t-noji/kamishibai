@@ -78,14 +78,14 @@ const n_list = addIn(window, {
   keys: o=> Object.keys(o),
   values: o=> Object.values(o),
   'is-array': a=> Array.isArray(a),
-  reduce: (f,a,b)=> a.reduce(f,b),
-  map: (f,a)=> a.map(f),
-  each: (f,a)=> a.forEach(f),
-  filter: (f,a)=> a.filter(f),
-  some: (f,a)=> a.some(f),
-  every: (f,a)=> a.every(f),
-  find: (f,a)=> a.find(f),
-  'find-index': (f,a)=> a.findIndex(f),
+  reduce: (f,a,b)=> Array.prototype.reduce.call(a,f,b),
+  map: (f,a)=> Array.prototype.map.call(a,f),
+  each: (f,a)=> Array.prototype.forEach.call(a,f),
+  filter: (f,a)=> Array.prototype.filter.call(a,f),
+  some: (f,a)=> Array.prototype.some.call(a,f),
+  every: (f,a)=> Array.prototype.every.call(a,f),
+  find: (f,a)=> Array.prototype.find.call(a,f),
+  'find-index': (f,a)=> Array.prototype.findIndex.call(a,f),
   join: (a,s)=> a.join(s)
 })
 
