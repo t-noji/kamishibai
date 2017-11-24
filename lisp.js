@@ -62,6 +62,8 @@ const n_list = addIn(window, {
   second: a=> a[2],
   third: a=> a[3],
   nth: (a,n)=> a[n],
+  'set-kv': (o,k,v)=> o[k] = v,
+  'mix-kv': (o,k,v)=> Object.assign(o, {[k]: v}),
   even: even,
   odd: odd,
   mix: mix,
@@ -72,7 +74,19 @@ const n_list = addIn(window, {
   length: l=> l.length,
   object: (...args)=>
     duo(args).reduce((pre,a)=> addIn(pre, {[a[0]]: a[1]}), {}),
-  'typeof': typeOf 
+  'typeof': typeOf,
+  keys: o=> Object.keys(o),
+  values: o=> Object.values(o),
+  'is-array': a=> Array.isArray(a),
+  reduce: (f,a,b)=> a.reduce(f,b),
+  map: (f,a)=> a.map(f),
+  each: (f,a)=> a.forEach(f),
+  filter: (f,a)=> a.filter(f),
+  some: (f,a)=> a.some(f),
+  every: (f,a)=> a.every(f),
+  find: (f,a)=> a.find(f),
+  'find-index': (f,a)=> a.findIndex(f),
+  join: (a,s)=> a.join(s)
 })
 
 const macro ={
