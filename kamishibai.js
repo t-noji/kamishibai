@@ -70,10 +70,11 @@ addIn(n_list, {
         arg.length
           ? arg.forEach(a=> (re($getClass(layer_ele, a)),
                              delete n_list.show_now[a]))
-          : ([... layer_ele.children, $getClass(element, 'select')]
+          : ([... Array.prototype.slice.call(layer_ele.children),
+              $getClass(element, 'select')]
               .forEach(re),
              n_list.show_now = {})
-  )(),
+    )(),
   show: (name, ...ps)=>{
     clear(name)
     layer_ele.appendChild(addIn(...ps.map(p=> hito[name][p])))

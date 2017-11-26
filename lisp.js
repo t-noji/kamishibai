@@ -86,7 +86,8 @@ const n_list = addIn(window, {
   every: (f,a)=> Array.prototype.every.call(a,f),
   find: (f,a)=> Array.prototype.find.call(a,f),
   'find-index': (f,a)=> Array.prototype.findIndex.call(a,f),
-  join: (a,s)=> a.join(s)
+  join: (a,s)=> a.join(s),
+  load: url=> get(url, res=> special.eval([n_list], JSON.parse(res)))
 })
 
 const macro ={

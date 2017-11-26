@@ -18,10 +18,16 @@
  <textarea id="source" rows=3 cols=80></textarea><br>
  <button id="DoButton">Do</button>
  -><textarea id="result" rows=1 cols=80></textarea>
-</body>
+
 <script src="lisp.js"></script>
 <script>
 'use strict'
+const get = (url, fn)=>{
+  const xhr = new XMLHttpRequest()
+  xhr.open('GET', url, true)
+  xhr.onload = ()=> xhr.status === 200 && fn && fn(xhr.responseText)
+  xhr.send()
+}
 const post = (url, msg, fn)=>{
   const xhr = new XMLHttpRequest()
   xhr.open('POST', url, true)
@@ -59,4 +65,5 @@ addIn(n_list, {
 <script>
 kamishibai(document.body)
 </script>
+</body>
 </html>
