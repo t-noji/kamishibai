@@ -26,7 +26,12 @@ const
     x === undefined       ? 'undefined':
     typeof x === 'object' ? x.constructor.name
                             || Object.prototype.toString.call(x).slice(8, -1):
-                            typeof x
+                            typeof x,
+  _try = (t,c,f)=>{
+    let tmp = undefined
+    try { tmp = t() } catch (e) { tmp = c && c(e) } finally { f && f() }
+    return tmp
+  }
 
 const {
   n_list, // lisp内で利用可能な関数リスト
@@ -87,10 +92,11 @@ const n_list = addIn(window, {
   find: (f,a)=> Array.prototype.find.call(a,f),
   'find-index': (f,a)=> Array.prototype.findIndex.call(a,f),
   join: (a,s)=> a.join(s),
-  load: url=> get(url, res=> special.eval([n_list], JSON.parse(res)))
+  load: url=> get(url, res=> special.eval([n_list], JSON.parse(res))),
+  'try': _try
 })
 
-const macro ={
+const macro = {
   defmacro: (name, namelist, body)=>{
     macro[name] = (...args)=>
       macroexpand(exe(args2env([n_list], namelist, args), body))
@@ -278,7 +284,7 @@ const exec = str=>{
   const
    jp = JSON.parse(`[${json}]`),
    expanded = jp.map(macroexpand)
-  console.log('expanded macro:',expanded)
+  console.log('expanded macro:', expanded)
   return special.progn([n_list], ...expanded)
 }
 
