@@ -110,6 +110,7 @@ addIn(n_list, {
   左: {style: {right: '60%'}},
   中: {style: {top: 0, left: 0, right: 0, margin: 'auto'}},
   上下: {style: {animation: 'vertical 0.5s ease infinite alternate'}},
+  左右: {style: {animation: 'horizontal 0.5s ease infinite alternate'}},
   停止: {style: {animation: 'none'}},
   'quick-save': (...args)=>
     n_list['chapter-now']
