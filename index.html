@@ -12,12 +12,11 @@
  <link rel="stylesheet" type="text/css" href="kamishibai.css">
 </head>
 <body>
- history<br>
- <textarea id="history" rows=4 cols=80></textarea><br>
+ <textarea id="history" rows=4></textarea><br>
  source<br>
- <textarea id="source" rows=3 cols=80></textarea><br>
+ <textarea id="source" rows=3></textarea><br>
  <button id="DoButton">Do</button>
- -><textarea id="result" rows=1 cols=80></textarea>
+ -><textarea id="result" rows=1></textarea>
 
 <script src="lisp.js"></script>
 <script>
@@ -47,6 +46,7 @@ const
 $id('DoButton').onclick = e=>{
   $id('result').value = exec($id('source').value)
   $id('history').value = $id('history').value + $id('source').value
+  $id('history').scrollTop = $id('history').scrollHeight
   $id('source').value = ''
 }
 $id('source').onkeyup = e=>

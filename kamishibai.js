@@ -5,8 +5,8 @@ const
   wrapper = $mk('div'),
   element = $mk('div',{style: {position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, userSelect: 'none'}}),
   background = $mk('img',{style:{position: 'absolute', height: '100%', width: '100%'}}),
-  layer_ele = $mk('div',{style:{position: 'absolute',overflow: 'hidden', height: '100%', width: '100%'}}),
-  filter_ele = $mk('div',{style:{position: 'absolute', height: '100%', width: '100%'}}),
+  layer_ele = $mk('div',{className: 'layer', style:{position: 'absolute',overflow: 'hidden', height: '100%', width: '100%'}}),
+  filter_ele = $mk('div',{className: 'filter', style:{position: 'absolute', height: '100%', width: '100%'}}),
   front_ele = $mk('div',{style:{position: 'absolute', height: '100%', width: '100%'}}),
   text_ele = $mk('div'),
   fukidasi = {className: 'fukidashi'},
@@ -46,7 +46,8 @@ addIn(n_list, {
   },
   'resize-font': a=> element.style.fontSize = a,
   image: src=> addIn(new Image(), {src: src}),
-  bg: (img,animation)=>{
+  //video: src=> $mk('video',{src: src, loop: true, autoplay: true}),
+  bg: (img, animation)=>{
     background.src = img.src
     background.style.animation = 'none'
     background.style.animation = animation || 'fadein 0.75s'
@@ -73,11 +74,17 @@ addIn(n_list, {
           : ([... Array.prototype.slice.call(layer_ele.children),
               $getClass(element, 'select')]
               .forEach(re),
+             filter(),
              n_list.show_now = {})
     )(),
   show: (name, ...ps)=>{
     clear(name)
     layer_ele.appendChild(addIn(...ps.map(p=> hito[name][p])))
+    const c = $getClass(layer_ele, name)
+    if (wrapper.classList.contains('rotate-wide') && c) {
+      Array.prototype.slice.call(layer_ele.children).forEach(lc=> lc.classList.remove('talk'))
+      c.classList.add('talk')
+    }
     n_list.show_now[name] = ps
   },
   'now-show': ()=>[
@@ -87,7 +94,11 @@ addIn(n_list, {
   talk: (name,str)=>{
     const tc = {textContent: `${name}\n「${str}」`}
     const fd =  mix(fukidasi, tc)
-    $getClass(layer_ele, name)
+    const c = $getClass(layer_ele, name)
+    if (wrapper.classList.contains('rotate-wide') && c) {
+      Array.prototype.slice.call(layer_ele.children).forEach(lc=> lc.classList.remove('talk'))
+      c.classList.add('talk')
+    }
     addIn(text_ele, fd)
     log.appendChild($mk('div', tc))
     log.scrollTop = log.scrollHeight

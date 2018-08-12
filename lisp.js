@@ -40,7 +40,7 @@ const {
   exec // (String body)=>result / lisp実行用関数
 } = (()=>{
 
-const n_list = addIn(window, {
+const n_list = addIn(this, { // this is window or grobal or module
   t: true,
   'true': true,
   'false': false,
@@ -92,7 +92,7 @@ const n_list = addIn(window, {
   find: (f,a)=> Array.prototype.find.call(a,f),
   'find-index': (f,a)=> Array.prototype.findIndex.call(a,f),
   join: (a,s)=> a.join(s),
-  load: url=> get(url, res=> special.eval([n_list], JSON.parse(res))),
+  load: url=> get(url, exec),
   'try': _try
 })
 
@@ -215,9 +215,10 @@ const special = {
 // 評価
 const
   search = (str, regex, count = -1, i)=>
-     (i = str.search(regex)) === -1
+     (i = str.search(regex),
+      i === -1
         ? []
-        : [[count + i + 1, str[i]]].concat(search(str.slice(i + 1), regex, count + i + 1)),
+        : [[count + i + 1, str[i]]].concat(search(str.slice(i + 1), regex, count + i + 1))),
 
   esc = (str, arg_obj)=>{
     const {start, count_start = start, start_replace = start,
@@ -273,7 +274,8 @@ const exec = str=>{
   const
    comment_str = str.replace(/;.*$/gm, ''),
    object_esc_str =
-     esc(comment_str, {start: '{', end: '}',
+     esc(comment_str, {
+      start: '{', end: '}',
       outFn: s=>  /"/.test(s)
         ? escOne(s, /"/, s=>`["str","${s}"]`, change)
         : change(s),
@@ -281,11 +283,27 @@ const exec = str=>{
    json = object_esc_str.replace(/^,*/, '')
                         .replace(/,*$/, '')
   console.log('json:', json)
-  const
-   jp = JSON.parse(`[${json}]`),
-   expanded = jp.map(macroexpand)
-  console.log('expanded macro:', expanded)
-  return special.progn([n_list], ...expanded)
+  const c_json = `[${json}]`
+  try {
+    const
+     jp = JSON.parse(c_json),
+     expanded = jp.map(macroexpand)
+    console.log('expanded macro:', expanded)
+    return special.progn([n_list], ...expanded)
+  }
+  catch (err) {
+    console.log(err.message)
+    console.log(err.name)
+    if (/column/.test(err.message)) {
+    }
+    else {
+      const posi = parseInt(err.message.replace(/[^-^0-9^\.]/g, ''))
+      const start = posi - 25 < 0 ? 0 : posi - 25
+      const end = posi + 25
+      console.log(c_json.slice(start, end))
+      console.log(' '.repeat(posi - start) + '^')
+    }
+  }
 }
 
 // lisp //

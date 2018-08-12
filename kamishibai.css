@@ -15,13 +15,15 @@
     0% { transform: translateX(-120%); }
   100% { transform: translateX( 0px); }
 }
+body{ background-color: black; }
+textarea{ width: 100%; }
 
 .fukidashi{
   white-space: pre-wrap;
-  height: 5em; width: 80%;
-  position: absolute; bottom: 0px; left: 10%;
-  color: white; text-shadow: 0 1px 3px black;
-  font-size: calc(79vw / 36);
+  height: 5em; width: 70%;
+  position: absolute; bottom: 0px; left: 15%;
+  color: white; text-shadow: 0 0.075em 0.2em black;
+  font-size: calc(69vw / 36);
 }
 .log {
   position: absolute; width: 100%; height: 100%;
@@ -62,7 +64,7 @@
   border: 0.625em solid transparent;
   border-left-color: rgba(255,255,255, 0.9);
 }
-.select{position: absolute; bottom: 7em; font-size: 140%;}
+.select{position: absolute; bottom: 4em; font-size: 140%;}
 .select .switch{
   opacity: 1;
   padding-left: 4em; padding-right: 2em; background-color: white;
@@ -79,5 +81,7 @@
 .cinesco:before { content: ""; display: block; padding-top: 42.5531915%; }
 .rotate-wide { position: relative; width: 100%; }
 .rotate-wide:before { content: ""; display: block; padding-top: 177.7777%; }
-.rotate-wide .fukidashi{ left: 2.5%; width: 95%; height: 8em; }
+.rotate-wide .fukidashi{ left: 2.5%; width: 95%; height: 10em; font-size: calc(95vw / 20); }
 .rotate-wide .select{ bottom: 10em; }
+.rotate-wide .layer img { display: none; }
+.rotate-wide .layer .talk{ display: block; }
