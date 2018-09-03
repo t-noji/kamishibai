@@ -12,6 +12,8 @@ const
   fukidasi = {className: 'fukidashi'},
   log = $mk('div', {className: 'log'}),
   log_x = $mk('div', {className: 'log-x', textContent: 'x'}),
+  bgm_ele = $mk('audio', {autoplay: true, loop: true}),
+  voice_ele = $mk('audio', {autoplay: true}),
   hito = {}
 
 element.appendChild(background)
@@ -25,7 +27,8 @@ wrapper.appendChild(element)
 parent.appendChild(wrapper)
 
 n_list.show_now = {}
-let title = ''
+let title = '',
+    voice_path = ''
 const makeSaveData = (...datas)=>
     ['chapter-now', 'chapter-now-num', ...datas]
       .reduce((pre,d)=> addIn(pre, {[d]: n_list[d]}), {})
@@ -44,7 +47,7 @@ addIn(n_list, {
     wrapper.classList.remove('wide','standard','cinesco','rotate-wide')
     addIn(element.style, {width: w, height: h})
   },
-  'resize-font': a=> element.style.fontSize = a,
+  'set-row-chars': a=> fukidasi.style = {fontSize: `calc(69vw / ${a})`},
   image: src=> addIn(new Image(), {src: src}),
   //video: src=> $mk('video',{src: src, loop: true, autoplay: true}),
   bg: (img, animation)=>{
@@ -99,6 +102,7 @@ addIn(n_list, {
       Array.prototype.slice.call(layer_ele.children).forEach(lc=> lc.classList.remove('talk'))
       c.classList.add('talk')
     }
+    voice_path && n_list.voice(str +'.mp3')
     addIn(text_ele, fd)
     log.appendChild($mk('div', tc))
     log.scrollTop = log.scrollHeight
@@ -117,6 +121,9 @@ addIn(n_list, {
       log.style.visibility = 'hidden'
     }
   },
+  voice: url=> voice_ele.src = voice_path + url,
+  'voice-path': path=> voice_path = path,
+  bgm: (src,volume = 1)=> (bgm_ele.volume = volume, bgm_ele.src = src),
   右: {style: {left: '60%'}},
   左: {style: {right: '60%'}},
   中: {style: {top: 0, left: 0, right: 0, margin: 'auto'}},
@@ -197,7 +204,8 @@ exec(`
 `)
 
 reader_macro.push(str=>
-  str.replace(/^\s*([^\s(]+)「(.*)」/gm, '(talk (str $1) (str $2)) wt '))
+  str.replace(/^\s*([^\s(]+)「(.*)」/gm,
+    '(talk (str $1) (str $2)) wt '))
 reader_macro.push(str=>
   str.replace(/^\s*[　]([^\s]*)/gm, '(text (str $1)) wt '))
 

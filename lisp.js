@@ -27,6 +27,7 @@ const
     typeof x === 'object' ? x.constructor.name
                             || Object.prototype.toString.call(x).slice(8, -1):
                             typeof x,
+  isObject = (o,t)=>(t= typeof o, o !== null && (t === 'object' || t === 'function')), 
   _try = (t,c,f)=>{
     let tmp = undefined
     try { tmp = t() } catch (e) { tmp = c && c(e) } finally { f && f() }
@@ -60,6 +61,7 @@ const n_list = addIn(this, { // this is window or grobal or module
   '!=': (a,b)=> a!==b,
   'in': (a,b)=> a in b,
   list: (...a)=> a,
+  imlist: (...a)=> Object.freeze(a),
   string: String,
   'add-in': addIn,
   'add-on': addOn,
@@ -77,9 +79,12 @@ const n_list = addIn(this, { // this is window or grobal or module
   append: (...args)=> [].concat(...args),
   log: a=> (console.log(a), a),
   length: l=> l.length,
-  object: (...args)=>
-    duo(args).reduce((pre,a)=> addIn(pre, {[a[0]]: a[1]}), {}),
+  obj: (...args)=>
+    duo(args).reduce((pre,a)=> (pre[a[0]] = a[1], pre), {}),
+  imobj: (...args)=> Object.freeze(n_list.obj(...args)),
+  inheritance: (...args)=> Object.create(...args),
   'typeof': typeOf,
+  'is-object': isObject,
   keys: o=> Object.keys(o),
   values: o=> Object.values(o),
   'is-array': a=> Array.isArray(a),
@@ -92,7 +97,12 @@ const n_list = addIn(this, { // this is window or grobal or module
   find: (f,a)=> Array.prototype.find.call(a,f),
   'find-index': (f,a)=> Array.prototype.findIndex.call(a,f),
   join: (a,s)=> a.join(s),
-  load: url=> get(url, exec),
+  load: url=> {
+    const xhr = new XMLHttpRequest()
+    xhr.open('GET', url, false) // sync //
+    xhr.onload = ()=> xhr.status === 200 && exec(xhr.responseText)
+    xhr.send()
+  },
   'try': _try
 })
 
@@ -199,9 +209,9 @@ const special = {
         (pre,s,j,aa)=>
           pre[s] = aa[j+1]
                       ? pre[s] || {}
-                      : exe(env,arg[i+1]),
+                      : exe(env, arg[i+1]),
         n_list))),
-  'let': (env,na, ...body)=>
+  'let': (env, na, ...body)=>
       special.lambda(env, na.map(a=>a[0]), ...body)
         (...na.map(a=> exe(env, a[a.length -1]))),
   setq: (env, cobj, body)=>
@@ -241,7 +251,7 @@ const
                  : count === 0
                    ? outFn(str.slice(0,i+el)) + escf(str.slice(i+el), 0)
                    : count === 1
-                     ? inFn(str.slice(0,i)) + end_replace + escf(str.slice(i+el), count -1)
+                     ? inFn(str.slice(0,i)) + end_replace + escf(str.slice(i+el), 0)
                      : inFn(str.slice(0,i+el)) + escf(str.slice(i+el), count -1))
     return escf(str)
   },
@@ -249,9 +259,10 @@ const
     const l = [-1, ...search(str, /"/).map(x=>x[0])]
     return l.reduce((p,c,i)=>p+ (i % 2 ? inFn : outFn)(str.slice(c+1, l[i+1])), '')
   },
+  readerFirstMacroK = (marker,macro)=>
+    str=> str.replace(RegExp(`${marker}\\(`, 'g'), `(${macro} `),
   readerFirstMacro = (marker,macro)=>
-    str=>
-      str.replace(RegExp(`${marker}\\(`, 'g'),`(${macro} `)
+    str=> readerFirstMacroK(marker,macro)(str)
          .replace(RegExp(`${marker}(\\S+)`, 'g'), `(${macro} $1)`)
 
 const reader_macro = [
@@ -259,7 +270,9 @@ const reader_macro = [
   readerFirstMacro('`', 'backquote'),
   str=> str.replace(/,@/g, '@ '),
   readerFirstMacro(',', 'unquote'),
-  readerFirstMacro('#', 'lambda')
+  readerFirstMacroK('#', 'lambda'),
+  readerFirstMacroK('o', 'obj'),
+  readerFirstMacroK('f', 'lambda')
 ]
 
 const exec = str=>{
@@ -269,17 +282,18 @@ const exec = str=>{
             .replace(/\(/g, '[')
             .replace(/\)/g, ']')
             .replace(/\s+/g, ',')
-            .replace(/[^\d\[\],][^,\[\]]*/g, '"$&"') //simbol
+            .replace(/(?!-?[\d\.]+)(?=[^\d,\[\]])[^,\[\]]*/g, '"$&"') //symbol
             .replace(/,+]/g, ']')
   const
-   comment_str = str.replace(/;.*$/gm, ''),
+   comment_str = str.replace(/;.*$/gm, ''), //BAG// ";"
    object_esc_str =
      esc(comment_str, {
       start: '{', end: '}',
       outFn: s=>  /"/.test(s)
         ? escOne(s, /"/, s=>`["str","${s}"]`, change)
         : change(s),
-      inFn: s=> s.replace(/[^\d:\s][^:\s]*(?=:)/g, '"$&"')}),
+      inFn: s=> s.replace(/[^\d:\s][^:\s]*(?=:)/g, '"$&"')
+     }),
    json = object_esc_str.replace(/^,*/, '')
                         .replace(/,*$/, '')
   console.log('json:', json)
@@ -292,8 +306,7 @@ const exec = str=>{
     return special.progn([n_list], ...expanded)
   }
   catch (err) {
-    console.log(err.message)
-    console.log(err.name)
+    console.error(err.name +': '+ err.message)
     if (/column/.test(err.message)) {
     }
     else {
@@ -314,16 +327,6 @@ exec(`
 (defmacro incf (cobj)
   \`(setq ,cobj (+ ,cobj 1)))
 `)
-
-// 日本語命令 //
-addIn(special, {
-  もし: special["if"],
-  代入: special.def,
-  関数: special.lambda
-})
-addIn(n_list, {
-  合成: n_list.mix
-})
 
 return {
   n_list: n_list,
