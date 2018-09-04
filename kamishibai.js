@@ -182,7 +182,7 @@ exec(`
     (duo body #((o f)
                 (append-child
                   front
-                  (let ((sw ($mk "div" {className: "switch"} o)))
+                  (let ((sw ($mk "div" (obj 'className "switch") o)))
                     (setq sw.onclick #((e) (e.stopPropagation)
                                            (f e)))
                     sw)))))
@@ -190,11 +190,11 @@ exec(`
   (defun select (& body)
     (setq front.onclick through)
     (def onkeypress through)
-    (let ((ele (append-child front ($mk "div" {className: "select"}))))
+    (let ((ele (append-child front ($mk "div" (obj 'className "select")))))
       (duo body #((o f)
                   (append-child
                     ele
-                    (let ((sw ($mk "div" {className: "switch"} o)))
+                    (let ((sw ($mk "div" (obj 'className "switch") o)))
                       (setq sw.onclick #((e) ($rm ele)
                                              (e.stopPropagation)
                                              (f e)))

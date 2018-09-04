@@ -196,12 +196,9 @@ const special = {
   cond: (env, ...args)=>
     (tmp=> (args.some(a=> exe(env,a[0]) && (tmp= exe(env,a[1]), true))
            ,tmp))(),
-  lambda: (env, names, ...body)=>{
-    const f = (...args)=>
-      special.progn(args2env(env, names, args), ...body)
-    f.toString = ()=> `${names}-> `+ JSON.stringify(body)
-    return f
-  },
+  lambda: (env, names, ...body)=>
+    addIn((...args)=> special.progn(args2env(env, names, args), ...body),
+          {toString: ()=> `${names}-> `+ JSON.stringify(body)}),
   def: (env, ...arg)=>
     arg.forEach((a,i)=>
       !(i%2) // hit 0 2 4 ...
@@ -229,32 +226,6 @@ const
       i === -1
         ? []
         : [[count + i + 1, str[i]]].concat(search(str.slice(i + 1), regex, count + i + 1))),
-
-  esc = (str, arg_obj)=>{
-    const {start, count_start = start, start_replace = start,
-           end = '\\)', end_replace = end.replace('\\',''), outFn =s=>s, inFn =s=>s}
-             = arg_obj
-    const se = new RegExp(start +'|'+ end)
-    const ce = new RegExp(count_start +'|'+ end)
-    const escf = (str, count = 0,  i,ss,sl,el)=>
-       (i = str.search(count ? ce : se),
-        ss = (count ? count_start : start).replace(/\\/g,''),
-        sl = ss.length,
-        el = end.replace(/\\/g,'').length,
-          i === -1
-               ? str && outFn(str)
-               : str.slice(i, i+sl) === ss
-                 ? count === 0
-                   ? outFn(str.slice(0,i)) + start_replace + escf(str.slice(i+sl), 1)
-                   : inFn(str.slice(0,i+sl)) + escf(str.slice(i+sl), count +1)
-                 // end
-                 : count === 0
-                   ? outFn(str.slice(0,i+el)) + escf(str.slice(i+el), 0)
-                   : count === 1
-                     ? inFn(str.slice(0,i)) + end_replace + escf(str.slice(i+el), 0)
-                     : inFn(str.slice(0,i+el)) + escf(str.slice(i+el), count -1))
-    return escf(str)
-  },
   escOne = (str, key, inFn =s=>s, outFn =s=>s)=>{
     const l = [-1, ...search(str, /"/).map(x=>x[0])]
     return l.reduce((p,c,i)=>p+ (i % 2 ? inFn : outFn)(str.slice(c+1, l[i+1])), '')
@@ -268,7 +239,9 @@ const
 const reader_macro = [
   readerFirstMacro("'", 'quote'),
   readerFirstMacro('`', 'backquote'),
-  str=> str.replace(/,@/g, '@ '),
+  s=> s.replace(/,@/g, '@ '), //bag?
+  s=> s.replace(/{/g, '(obj ').replace(/}/g, ')')
+       .replace(/(\S+):/g, "(str $1)"),
   readerFirstMacro(',', 'unquote'),
   readerFirstMacroK('#', 'lambda'),
   readerFirstMacroK('o', 'obj'),
@@ -277,7 +250,7 @@ const reader_macro = [
 
 const exec = str=>{
   const change = str=>
-         reader_macro.reduce((p,f)=>f(p), str)
+         reader_macro.reduce((p,f)=> f(p), str)
             .replace(/\)\s+\(/g, '),(')
             .replace(/\(/g, '[')
             .replace(/\)/g, ']')
@@ -286,16 +259,9 @@ const exec = str=>{
             .replace(/,+]/g, ']')
   const
    comment_str = str.replace(/;.*$/gm, ''), //BAG// ";"
-   object_esc_str =
-     esc(comment_str, {
-      start: '{', end: '}',
-      outFn: s=>  /"/.test(s)
-        ? escOne(s, /"/, s=>`["str","${s}"]`, change)
-        : change(s),
-      inFn: s=> s.replace(/[^\d:\s][^:\s]*(?=:)/g, '"$&"')
-     }),
-   json = object_esc_str.replace(/^,*/, '')
-                        .replace(/,*$/, '')
+   str_esc_str = escOne(comment_str, /"/, s=>`["str","${s}"]`, change),
+   json = str_esc_str.replace(/^,*/, '')
+                     .replace(/,*$/, '')
   console.log('json:', json)
   const c_json = `[${json}]`
   try {
@@ -323,7 +289,6 @@ const exec = str=>{
 exec(`
 (defmacro defun (name arglist & body)
   \`(def ,name (lambda ,arglist ,@body)))
-
 (defmacro incf (cobj)
   \`(setq ,cobj (+ ,cobj 1)))
 `)
