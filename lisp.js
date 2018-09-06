@@ -32,7 +32,11 @@ const
     let tmp = undefined
     try { tmp = t() } catch (e) { tmp = c && c(e) } finally { f && f() }
     return tmp
-  }
+  },
+  valueFreeze = obj=>
+    Object.keys(obj).reduce((o,k)=>
+      (o[k] = {value: obj[k], writable: false,
+               enumerable: true, configurable: false}, o), {})
 
 const {
   n_list, // lisp内で利用可能な関数リスト
@@ -41,7 +45,8 @@ const {
   exec // (String body)=>result / lisp実行用関数
 } = (()=>{
 
-const n_list = addIn(this, { // this is window or grobal or module
+const n_list = Object.create(Object, valueFreeze({
+  grobal: this, 'window': this, // this is window or grobal or module
   t: true,
   'true': true,
   'false': false,
@@ -68,8 +73,15 @@ const n_list = addIn(this, { // this is window or grobal or module
   first: a=> a[1],
   second: a=> a[2],
   third: a=> a[3],
-  nth: (a,n)=> a[n],
-  'set-kv': (o,k,v)=> o[k] = v,
+  nth: (obj, ...path)=> path.reduce((o,p)=> o && o[p], obj),
+  set: (obj, ...args)=>{
+    const value = args[args.length -1]
+    const path = args.slice(0,-1)
+    return path.slice(0,-1).reduce(
+      (o,p)=> p in o ? o[p] : o[p] = {}, obj
+    )[path[path.length -1]] = value
+  },
+  '.': (...args)=> n_list.nth(...args),
   'mix-kv': (o,k,v)=> Object.assign(o, {[k]: v}),
   even: even,
   odd: odd,
@@ -79,8 +91,7 @@ const n_list = addIn(this, { // this is window or grobal or module
   append: (...args)=> [].concat(...args),
   log: a=> (console.log(a), a),
   length: l=> l.length,
-  obj: (...args)=>
-    duo(args).reduce((pre,a)=> (pre[a[0]] = a[1], pre), {}),
+  obj: (...args)=> duo(args).reduce((pre,a)=> (pre[a[0]] = a[1], pre), {}),
   imobj: (...args)=> Object.freeze(n_list.obj(...args)),
   inheritance: (...args)=> Object.create(...args),
   'typeof': typeOf,
@@ -88,15 +99,16 @@ const n_list = addIn(this, { // this is window or grobal or module
   keys: o=> Object.keys(o),
   values: o=> Object.values(o),
   'is-array': a=> Array.isArray(a),
-  reduce: (f,a,b)=> Array.prototype.reduce.call(a,f,b),
-  map: (f,a)=> Array.prototype.map.call(a,f),
-  each: (f,a)=> Array.prototype.forEach.call(a,f),
-  filter: (f,a)=> Array.prototype.filter.call(a,f),
-  some: (f,a)=> Array.prototype.some.call(a,f),
-  every: (f,a)=> Array.prototype.every.call(a,f),
-  find: (f,a)=> Array.prototype.find.call(a,f),
-  'find-index': (f,a)=> Array.prototype.findIndex.call(a,f),
+  reduce: (f,a,b)=> Array.prototype.reduce.call(f,a,b),
+  map: (f,a)=> Array.prototype.map.call(f,a),
+  each: (f,a)=> Array.prototype.forEach.call(f,a),
+  filter: (f,a)=> Array.prototype.filter.call(f,a),
+  some: (f,a)=> Array.prototype.some.call(f,a),
+  every: (f,a)=> Array.prototype.every.call(f,a),
+  find: (f,a)=> Array.prototype.find.call(f,a),
+  'find-index': (f,a)=> Array.prototype.findIndex.call(f,a),
   join: (a,s)=> a.join(s),
+  regexp: (str, op)=> new RegExp(str, op),
   load: url=> {
     const xhr = new XMLHttpRequest()
     xhr.open('GET', url, false) // sync //
@@ -104,12 +116,12 @@ const n_list = addIn(this, { // this is window or grobal or module
     xhr.send()
   },
   'try': _try
-})
+}))
 
 const macro = {
   defmacro: (name, namelist, body)=>{
     macro[name] = (...args)=>
-      macroexpand(exe(args2env([n_list], namelist, args), body))
+      macroexpand(exe(args2env(n_list, namelist, args), body))
     return ['undefined']
   },
   backquote:
@@ -158,9 +170,8 @@ const
       (env,str)=>{
         if (typeof str === 'function') return str
         const ss = str.split('.')
-        const ef = env.find(e=> ss[0] in e)
-        if (ef === undefined) console.log('無いよ:', str, '環境', env)
-        return ff(ss.slice(1), ef[ss[0]])
+        if (env[ss[0]] === undefined) console.log('無いよ:', str, '環境', env)
+        return ff(ss.slice(1), env[ss[0]])
       })(),
   exe = (env,b)=>
     !Array.isArray(b)
@@ -178,12 +189,13 @@ const
 
 const args2env = (env, names=[], vals=[])=>{
   const slice_index = (names.indexOf('&') +1) || names.length
-  return [names.slice(0, slice_index).reduce((pre,name,i)=>
-    (name === '&'
-      ? pre[names[i+1]] = vals.slice(i)
-      : pre[name] = vals[i],
-     pre),
-    {})].concat(env)
+  return Object.create(env,
+    names.slice(0, slice_index).reduce((pre,name,i)=>
+      (name === '&'
+        ? pre[names[i+1]] = {value: vals.slice(i), writable: true} // & hoge<-
+        : pre[name] = {value: vals[i], writable: true},
+       pre),
+      {}))
 }
 
 // 特殊式
@@ -204,16 +216,20 @@ const special = {
       !(i%2) // hit 0 2 4 ...
       && (a.split('.').reduce(
         (pre,s,j,aa)=>
-          pre[s] = aa[j+1]
-                      ? pre[s] || {}
-                      : exe(env, arg[i+1]),
+          aa[j+1] ? pre[s] || (pre[s] = {})
+                  : pre[s] = exe(env, arg[i+1]),
         n_list))),
   'let': (env, na, ...body)=>
       special.lambda(env, na.map(a=>a[0]), ...body)
         (...na.map(a=> exe(env, a[a.length -1]))),
-  setq: (env, cobj, body)=>
-    ((cs= cobj.split('.'))=>
-      cs.slice(0, -1).reduce((o,c)=> c in o ? o[c] : o[c] = {}, env.find(e=> cs[0] in e))[cs[cs.length -1]] = exe(env, body))(),
+  setq: (env, cobj, body)=>{
+    const path = cobj.split('.')
+    const protoDigSetter = (o,p,v)=>
+      o.hasOwnProperty(p) ? o[p] = v : protoDigSetter(Object.getPrototypeOf(o),p,v) 
+    return path.length ===1 ?
+        protoDigSetter(env, [path[0]], exe(env, body))
+      : n_list.set(env[path[0]], ...path.slice(1), exe(env, body))
+  },
   quote: (env, ...s)=> s.length === 1 ? s[0] : s,
   str: (env, ...arg)=> String(...arg),
   'undefined': (env)=> undefined
@@ -239,7 +255,7 @@ const
 const reader_macro = [
   readerFirstMacro("'", 'quote'),
   readerFirstMacro('`', 'backquote'),
-  s=> s.replace(/,@/g, '@ '), //bag?
+  s=> s.replace(/,@/g, '@ '), 
   s=> s.replace(/{/g, '(obj ').replace(/}/g, ')')
        .replace(/(\S+):/g, "(str $1)"),
   readerFirstMacro(',', 'unquote'),
@@ -251,25 +267,23 @@ const reader_macro = [
 const exec = str=>{
   const change = str=>
          reader_macro.reduce((p,f)=> f(p), str)
+            .replace(/;.*$/gm, '')
             .replace(/\)\s+\(/g, '),(')
             .replace(/\(/g, '[')
             .replace(/\)/g, ']')
             .replace(/\s+/g, ',')
+            .replace(/,+/g, ',')
             .replace(/(?!-?[\d\.]+)(?=[^\d,\[\]])[^,\[\]]*/g, '"$&"') //symbol
             .replace(/,+]/g, ']')
   const
-   comment_str = str.replace(/;.*$/gm, ''), //BAG// ";"
-   str_esc_str = escOne(comment_str, /"/, s=>`["str","${s}"]`, change),
+   str_esc_str = escOne(str, /"/, s=>`["str","${s}"]`, change),
    json = str_esc_str.replace(/^,*/, '')
                      .replace(/,*$/, '')
   console.log('json:', json)
   const c_json = `[${json}]`
+  let jp
   try {
-    const
-     jp = JSON.parse(c_json),
-     expanded = jp.map(macroexpand)
-    console.log('expanded macro:', expanded)
-    return special.progn([n_list], ...expanded)
+    jp = JSON.parse(c_json)
   }
   catch (err) {
     console.error(err.name +': '+ err.message)
@@ -283,6 +297,9 @@ const exec = str=>{
       console.log(' '.repeat(posi - start) + '^')
     }
   }
+  const expanded = jp.map(macroexpand)
+  console.log('expanded macro:', expanded)
+  return special.progn(n_list, ...expanded)
 }
 
 // lisp //

@@ -60,7 +60,7 @@ addIn(n_list, {
     hito[name] = duo(ks).reduce((pre,k)=>
       addIn(pre, {[k[0]]: addIn(k[1],
         {className: name, style: {position: 'absolute', width: 'auto'}})}), {}),
-  filter: fil=>
+  film: fil=>
     fil
       ? typeof fil === 'string'
         ? filter_ele.style.backgroundColor = fil || "rgba(0,0,0,0)"
@@ -77,11 +77,11 @@ addIn(n_list, {
           : ([... Array.prototype.slice.call(layer_ele.children),
               $getClass(element, 'select')]
               .forEach(re),
-             filter(),
+             n_list.film(),
              n_list.show_now = {})
     )(),
   show: (name, ...ps)=>{
-    clear(name)
+    n_list.clear(name)
     layer_ele.appendChild(addIn(...ps.map(p=> hito[name][p])))
     const c = $getClass(layer_ele, name)
     if (wrapper.classList.contains('rotate-wide') && c) {
@@ -163,11 +163,11 @@ exec(`
     (let ((l (split-array ll "wt"))
           (i (or index 0)))
        (if (and index (< index (length l)))
-         (forEach (slice l 0 index) #((a) (eval a))))
+         (each (slice l 0 index) #((a) (eval a))))
        (let ((sc #((i) (def chapter-now-num i)
                        (eval (nth l i)))))
          (setq front.onclick #(() (sc (incf i))))
-         (defun onkeypress (e)
+         (defun window.onkeypress (e)
            (if (= e.keyCode 32) (sc (incf i))))
          (sc 0))))
 
@@ -178,7 +178,7 @@ exec(`
 
   (defun switch (& body)
     (setq front.onclick through)
-    (def onkeypress through)
+    (def window.onkeypress through)
     (duo body #((o f)
                 (append-child
                   front
