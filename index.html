@@ -44,7 +44,7 @@ const
 /*** Script ***/
 
 $id('DoButton').onclick = e=>{
-  $id('result').value = exec($id('source').value)
+  $id('result').value = lisp.exec($id('source').value)
   $id('history').value = $id('history').value + $id('source').value
   $id('history').scrollTop = $id('history').scrollHeight
   $id('source').value = ''
@@ -53,7 +53,7 @@ $id('source').onkeyup = e=>
   e.keyCode === 13 && !e.shiftKey &&
     (e.preventDefault(), $id('DoButton').onclick(e))
 $id('source').onkeypress =e=> e.stopPropagation()
-addIn(n_list, {
+addIn(lisp.env, {
   $id: $id,
   $classes: $classes,
   $mk: $mk,

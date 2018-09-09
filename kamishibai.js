@@ -26,14 +26,14 @@ element.appendChild(log)
 wrapper.appendChild(element)
 parent.appendChild(wrapper)
 
-n_list.show_now = {}
 let title = '',
     voice_path = ''
 const makeSaveData = (...datas)=>
     ['chapter-now', 'chapter-now-num', ...datas]
       .reduce((pre,d)=> addIn(pre, {[d]: n_list[d]}), {})
 
-addIn(n_list, {
+const n_list = {
+  show_now: {},
   'this-box': element,
   hito: hito,
   front: front_ele,
@@ -140,22 +140,22 @@ addIn(n_list, {
     if (data) {
       const cn  = data['chapter-now']
       const cnn = data['chapter-now-num']
-      exec(`(script-eval ${cn} ${cnn})`)
+      lisp.exec(`(script-eval ${cn} ${cnn})`)
     }
     else alert('セーブデータが無いよ')
   }
-})
-
+}
+addIn(lisp.env, n_list)
 
 const splitArray = (l,key,i)=>
   (i= l.indexOf(key)) === -1
     ? [l]
     : [].concat([l.slice(0, i)], splitArray(l.slice(i +1), key))
 
-addIn(n_list, {'split-array': splitArray})
+addIn(lisp.env, {'split-array': splitArray})
 
 // マクロの順番に注意 / 展開タイミングに影響します /
-exec(`
+lisp.exec(`
   (defmacro chapter (name & body)
    \`(def ,name (quote (def chapter-now (str ,name)) ,@body)))
 
@@ -203,10 +203,10 @@ exec(`
   (defun reshow () (eval (now-show)))
 `)
 
-reader_macro.push(str=>
+lisp.reader_macros.push(str=>
   str.replace(/^\s*([^\s(]+)「(.*)」/gm,
     '(talk (str $1) (str $2)) wt '))
-reader_macro.push(str=>
+lisp.reader_macros.push(str=>
   str.replace(/^\s*[　]([^\s]*)/gm, '(text (str $1)) wt '))
 
 // 日本語別名登録 //
@@ -217,9 +217,9 @@ addIn(n_list, {
   スイッチ: n_list['switch'],
   分岐: n_list['select']
 })
-addIn(macro, {
-  表示: macro.shows,
-  章: macro.chapter,
+addIn(lisp.macro, {
+  表示: lisp.macro.shows,
+  章: lisp.macro.chapter,
 })
 
 ///init///

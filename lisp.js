@@ -27,6 +27,7 @@ const
     typeof x === 'object' ? x.constructor.name
                             || Object.prototype.toString.call(x).slice(8, -1):
                             typeof x,
+  isArray = a=> Array.isArray(a),
   isObject = (o,t)=>(t= typeof o, o !== null && (t === 'object' || t === 'function')), 
   _try = (t,c,f)=>{
     let tmp = undefined
@@ -36,16 +37,30 @@ const
   valueFreeze = obj=>
     Object.keys(obj).reduce((o,k)=>
       (o[k] = {value: obj[k], writable: false,
-               enumerable: true, configurable: false}, o), {})
+               enumerable: true, configurable: false}, o), {}),
+  mkValFreezeObj = obj=> Object.create(Object.prototype, valueFreeze(obj)),
+  compose = (fn, ...fs)=> (...args)=> fs.reduce((r,f)=> f(r), fn(...args)),
+  conjoin = (...fs)=> a=> fs.every(f=> f(a)),
+  disjoin = (...fs)=> a=> fs.some(f=> f(a)),
+  protoDigSetter = (o,p,v)=>
+      o.hasOwnProperty(p) ?
+        (o[p] = v) : protoDigSetter(Object.getPrototypeOf(o),p,v),
+  keys = o=> Object.keys(o),
+  digger = (obj, fn)=>
+    (isObject(obj) ? keys(obj).length : obj.length) === 0 ?
+      fn(obj) : keys(obj).reduce((r,k)=>
+        (r[k] = objDigger(obj[k]), r), isArray(obj) ? [] : {})
 
-const {
+const lisp =
+/*{
   n_list, // lisp内で利用可能な関数リスト
   macro,  // lisp内で利用可能なマクロリスト
   reader_macro, // リーダマクロリスト
   exec // (String body)=>result / lisp実行用関数
-} = (()=>{
+}*/
+(()=>{
 
-const n_list = Object.create(Object, valueFreeze({
+const n_list = mkValFreezeObj({
   grobal: this, 'window': this, // this is window or grobal or module
   t: true,
   'true': true,
@@ -82,6 +97,7 @@ const n_list = Object.create(Object, valueFreeze({
     )[path[path.length -1]] = value
   },
   '.': (...args)=> n_list.nth(...args),
+  get: (...args)=> n_list.nth(...args),
   'mix-kv': (o,k,v)=> Object.assign(o, {[k]: v}),
   even: even,
   odd: odd,
@@ -96,9 +112,9 @@ const n_list = Object.create(Object, valueFreeze({
   inheritance: (...args)=> Object.create(...args),
   'typeof': typeOf,
   'is-object': isObject,
-  keys: o=> Object.keys(o),
+  keys: keys,
   values: o=> Object.values(o),
-  'is-array': a=> Array.isArray(a),
+  'is-array': isArray,
   reduce: (f,a,b)=> Array.prototype.reduce.call(f,a,b),
   map: (f,a)=> Array.prototype.map.call(f,a),
   each: (f,a)=> Array.prototype.forEach.call(f,a),
@@ -115,17 +131,20 @@ const n_list = Object.create(Object, valueFreeze({
     xhr.onload = ()=> xhr.status === 200 && exec(xhr.responseText)
     xhr.send()
   },
-  'try': _try
-}))
+  'try': _try,
+  compose: compose,
+  conjoin: conjoin,
+  disjoin: disjoin
+})
 
-const macro = {
+const macro = mkValFreezeObj({
   defmacro: (name, namelist, body)=>{
     macro[name] = (...args)=>
       macroexpand(exe(args2env(n_list, namelist, args), body))
     return ['undefined']
   },
-  backquote:
-   ((lflat = (l, key, f=x=>x)=>
+  backquote: (()=>{
+    const lflat = (l, key, f=x=>x)=>
       l.indexOf(key) === -1
         ? ['list', ...l.map(f)]
         : ['append', ...l.map((i,index)=>
@@ -133,8 +152,8 @@ const macro = {
               ? false
               : l[index -1] === key
                 ? i
-                : ['list', f(i)])].filter(Boolean),
-     bq = s=>
+                : ['list', f(i)])].filter(Boolean)
+    const bq = s=>
        !Array.isArray(s)
          ? typeof s === 'string' && s !== '@'
            ? ['quote', s]
@@ -145,13 +164,13 @@ const macro = {
              ? s.length === 2
                ? s[1]
                : s.slice(1)
-             : lflat(s, '@', bq))=>
-    (...args)=>
+             : lflat(s, '@', bq)
+    return (...args)=>
       args.length === 1
         ? ['quote', args[0]]
         : lflat(args, '@', bq)
-  )(),
-}
+  })()
+})
 
 const
   macroexpand = b=> // ((a 1)) 
@@ -163,13 +182,13 @@ const
   found = 
     ((ff= (ss,base)=>
       ss.reduce(
-          (o,s)=> s in o && (o[s]["bind"] // inの場合数字などに対応不可
-                              ? o[s].bind(o)
-                              : o[s]),
+          (o,s)=> o[s] && (o[s]["bind"] // inの場合数字などに対応不可
+                            ? o[s].bind(o)
+                            : o[s]),
           base))=>
       (env,str)=>{
         if (typeof str === 'function') return str
-        const ss = str.split('.')
+        const ss = str === '.' ? ['.'] : str.split('.')
         if (env[ss[0]] === undefined) console.log('無いよ:', str, '環境', env)
         return ff(ss.slice(1), env[ss[0]])
       })(),
@@ -224,8 +243,6 @@ const special = {
         (...na.map(a=> exe(env, a[a.length -1]))),
   setq: (env, cobj, body)=>{
     const path = cobj.split('.')
-    const protoDigSetter = (o,p,v)=>
-      o.hasOwnProperty(p) ? o[p] = v : protoDigSetter(Object.getPrototypeOf(o),p,v) 
     return path.length ===1 ?
         protoDigSetter(env, [path[0]], exe(env, body))
       : n_list.set(env[path[0]], ...path.slice(1), exe(env, body))
@@ -267,13 +284,14 @@ const reader_macro = [
 const exec = str=>{
   const change = str=>
          reader_macro.reduce((p,f)=> f(p), str)
-            .replace(/;.*$/gm, '')
+            .replace(/;.*$/gm, '') // commentout
             .replace(/\)\s+\(/g, '),(')
             .replace(/\(/g, '[')
             .replace(/\)/g, ']')
             .replace(/\s+/g, ',')
             .replace(/,+/g, ',')
             .replace(/(?!-?[\d\.]+)(?=[^\d,\[\]])[^,\[\]]*/g, '"$&"') //symbol
+            .replace(/(?<=[\[\],]+)\.(?=[\[\],]+)/g, '"."') // . symbol
             .replace(/,+]/g, ']')
   const
    str_esc_str = escOne(str, /"/, s=>`["str","${s}"]`, change),
@@ -311,9 +329,9 @@ exec(`
 `)
 
 return {
-  n_list: n_list,
+  env: n_list,
   macro: macro,
+  reader_macros: reader_macro,
   exec: exec,
-  reader_macro: reader_macro,
 }
 })();
