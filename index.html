@@ -11,7 +11,7 @@
  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.4/lodash.js"></script>
  <link rel="stylesheet" type="text/css" href="kamishibai.css">
  <style type="text/css">
-  #repl-visible-button { position: absolute; left: 45%; z-index: 99;}
+  #repl-visible-button { position: absolute; left: 45%; z-index: 99; opacity: 0.75; }
   #repl-visible-button img { height: 1.5em; }
   #repl-box { color: white; }
  </style>
@@ -70,15 +70,26 @@ addIn(lisp.env, {
   $rm: $remove,
   'append-child': (e,c)=> e.appendChild(c)
 }, {'_': _})
-
-{ let vi = false
-  $id('repl-visible-button').onclick = e=> 
-    $id('repl-box').style.display = (vi= !vi) ? 'none' : 'block'
-}
 </script>
 <script src="kamishibai.js"></script>
 <script>
 kamishibai(document.body)
+{
+// repl visible //
+  let vi = false
+  const replHidden = e=>
+    $id('repl-box').style.display = (vi= !vi) ? 'none' : 'block'
+  $id('repl-visible-button').onclick = replHidden
+
+// get url param //
+  const url_param = location.search.substring(1).split('&').reduce((r,s)=>{
+    const kv = s.split('=')
+    r[kv[0]] = kv[1]
+    return r
+  }, {})
+  if (url_param.load) lisp.env.load(url_param.load)
+  if (url_param.replbox === 'hidden') replHidden()
+}
 </script>
 </body>
 </html>
