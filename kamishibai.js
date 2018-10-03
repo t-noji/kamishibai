@@ -26,14 +26,14 @@ element.appendChild(log)
 wrapper.appendChild(element)
 parent.appendChild(wrapper)
 
-let title = '',
-    voice_path = ''
+let title = ''
 const makeSaveData = (...datas)=>
     ['chapter-now', 'chapter-now-num', ...datas]
       .reduce((pre,d)=> addIn(pre, {[d]: n_list[d]}), {})
 
 const n_list = {
   show_now: {},
+  voice_path: '',
   'this-box': element,
   hito: hito,
   front: front_ele,
@@ -102,11 +102,14 @@ const n_list = {
       Array.prototype.slice.call(layer_ele.children).forEach(lc=> lc.classList.remove('talk'))
       c.classList.add('talk')
     }
-    voice_path && n_list.voice(str +'.mp3')
+    n_list.voice_path && n_list.voice(name + '「'+ str +'」.mp3')
     addIn(text_ele, fd)
     log.appendChild($mk('div', tc))
     log.scrollTop = log.scrollHeight
   },
+  preLoadVoice: (name,str)=> $mk('audio', {
+    src: n_list.voice_path + name + '「'+ str +'」.mp3'
+  }),
   text: str=>{
     const tc = {textContent: str}
     addIn(text_ele, mix(fukidasi, tc))
@@ -121,8 +124,8 @@ const n_list = {
       log.style.visibility = 'hidden'
     }
   },
-  voice: url=> voice_ele.src = voice_path + url,
-  'voice-path': path=> voice_path = path,
+  voice: url=> voice_ele.src = n_list.voice_path + url,
+  'voice-path': path=> lisp.env.voice_path = n_list.voice_path = path,
   bgm: (src,volume = 1)=> (bgm_ele.volume = volume, bgm_ele.src = src),
   右: {style: {left: '60%'}},
   左: {style: {right: '60%'}},
@@ -159,8 +162,11 @@ lisp.exec(`
   (defmacro chapter (name & body)
    \`(def ,name (quote (def chapter-now (str ,name)) ,@body)))
 
-  (defun script-eval (ll index)
-    (let ((l (split-array ll "wt"))
+  (defun script-eval (lines index)
+    (if voice_path
+      (each lines #((l) (if (= (first l) "talk")
+                          (preLoadVoice (. l 1 1) (. l 2 1))))))
+    (let ((l (split-array lines "wt"))
           (i (or index 0)))
        (if (and index (< index (length l)))
          (each (slice l 0 index) #((a) (eval a))))
@@ -204,10 +210,10 @@ lisp.exec(`
 `)
 
 lisp.reader_macros.push(str=>
-  str.replace(/^\s*([^\s(]+)「(.*)」/gm,
-    '(talk (str $1) (str $2)) wt '))
+  str.replace(/^\s*([^\s(]+)「(.*)」$/gm,
+    '(talk "$1" "$2") wt '))
 lisp.reader_macros.push(str=>
-  str.replace(/^\s*[　]([^\s]*)/gm, '(text (str $1)) wt '))
+  str.replace(/^\s*[　](.*)$/gm, '(text "$1") wt '))
 
 // 日本語別名登録 //
 addIn(n_list, {

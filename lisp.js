@@ -81,13 +81,15 @@ const n_list = mkValFreezeObj({
   '!=': (a,b)=> a!==b,
   'in': (a,b)=> a in b,
   list: (...a)=> a,
+  'make-array': (obj, fn)=>
+    Array.from(Number.isInteger(obj)? {length: obj} : obj, fn),
   imlist: (...a)=> Object.freeze(a),
   string: String,
   'add-in': addIn,
   'add-on': addOn,
-  first: a=> a[1],
-  second: a=> a[2],
-  third: a=> a[3],
+  first: a=> a[0],
+  second: a=> a[1],
+  third: a=> a[2],
   nth: (obj, ...path)=> path.reduce((o,p)=> o && o[p], obj),
   set: (obj, ...args)=>{
     const value = args[args.length -1]
@@ -269,7 +271,7 @@ const
     str=> readerFirstMacroK(marker,macro)(str)
          .replace(RegExp(`${marker}(\\S+)`, 'g'), `(${macro} $1)`)
 
-const reader_macro = [
+const in_reader_macro = [
   readerFirstMacro("'", 'quote'),
   readerFirstMacro('`', 'backquote'),
   s=> s.replace(/,@/g, '@ '), 
@@ -277,13 +279,14 @@ const reader_macro = [
        .replace(/(\S+):/g, "(str $1)"),
   readerFirstMacro(',', 'unquote'),
   readerFirstMacroK('#', 'lambda'),
-  readerFirstMacroK('o', 'obj'),
-  readerFirstMacroK('f', 'lambda')
+  //readerFirstMacroK('o', 'obj'),
+  //readerFirstMacroK('f', 'lambda')
 ]
+const reader_macros = []
 
 const exec = str=>{
   const change = str=>
-         reader_macro.reduce((p,f)=> f(p), str)
+         in_reader_macro.reduce((p,f)=> f(p), str)
             .replace(/;.*$/gm, '') // commentout
             .replace(/\)\s+\(/g, '),(')
             .replace(/\(/g, '[')
@@ -291,10 +294,12 @@ const exec = str=>{
             .replace(/\s+/g, ',')
             .replace(/,+/g, ',')
             .replace(/(?!-?[\d\.]+)(?=[^\d,\[\]])[^,\[\]]*/g, '"$&"') //symbol
-            .replace(/(?<=[\[\],]+)\.(?=[\[\],]+)/g, '"."') // . symbol
+            //.replace(/(?<=[\[\],]+)\.(?=[\[\],]+)/g, '"."') // . symbol
+            .replace(/[\[\],]+\.(?=[\[\],]+)/g, s=> s.slice(0,-1) +'"."') // . symbol
             .replace(/,+]/g, ']')
   const
-   str_esc_str = escOne(str, /"/, s=>`["str","${s}"]`, change),
+   str_rmdo = reader_macros.reduce((p,f)=> f(p), str),
+   str_esc_str = escOne(str_rmdo, /"/, s=>`["str","${s}"]`, change),
    json = str_esc_str.replace(/^,*/, '')
                      .replace(/,*$/, '')
   console.log('json:', json)
@@ -331,7 +336,7 @@ exec(`
 return {
   env: n_list,
   macro: macro,
-  reader_macros: reader_macro,
+  reader_macros: reader_macros,
   exec: exec,
 }
 })();
