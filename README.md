@@ -12,11 +12,13 @@ JavaScript関数や変数が利用できます。
 ※構文エラーなどはJavaScriptコンソール内で表示
 
 # お試し
-http://nilisp.html.xdomain.jp
-
+お試しサイト  
+http://nilisp.html.xdomain.jp  
+スクリプト例  
+http://nilisp.html.xdomain.jp/geeks/js_start0.lisp
 # 文字列表示
 キャラ名「キャラにセリフを吐かせることができます」  
-　スペースを行頭に入れると地の文になります。  
+　全角スペースを行頭に入れると地の文になります。  
 
 # 紙芝居関数
 * セーブに関与するタイトルをつけます
@@ -70,3 +72,15 @@ or
 * マクロ  
 (defmacro マクロ名  
   `(hoge ,@(fuga)))
+
+# その他関数
+* 外部スクリプトをロード  
+(load "スクリプトのurl")  
+※XMLHttpRequestを利用しているので、読み込めない場合もあります
+
+# 初期パラメータ
+* 起動時にスクリプトを読み込ませる  
+urlに?load=urlを追加  
+* 起動時に紙芝居画面だけを表示する  
+urlに?replbox=hiddenを追加  
+例：http://nilisp.html.xdomain.jp/?load=geeks/js_start0.lisp&replbox=hidden
