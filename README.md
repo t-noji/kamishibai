@@ -4,6 +4,12 @@ Lisp形式でスクリプトを記述できます。スコープ、関数、マ�
 JavaScript関数や変数が利用できます。  
 リーダーマクロを利用してDSL化してあるので、Lispを知らなくてもわりと簡易です。  
 
+# Lisp処理系(lisp.js部分)
+ほぼピュアJavaScriptなLisp処理系です。
+lisp.jsをダウンロードして読み込み、exec()することで利用できます。
+execの戻り値と関数はJavaScriptの関数と互換性があります。
+lisp.envで内部変数にアクセスできます
+
 # 使い方
 0. git clone かなにかでダウンロードする
 1. index.htmlを開き、source以下のテキストボックスにスクリプトを記述する  
