@@ -6,7 +6,7 @@ JavaScript関数や変数が利用できます。
 
 # Lisp処理系(lisp.js部分)
 ほぼピュアJavaScriptなLisp処理系です。  
-lisp.jsをダウンロードして読み込み、exec()することで利用できます。  
+lisp.jsをダウンロードして読み込み、lisp.exec()することで利用できます。  
 execの戻り値と関数はJavaScriptの関数と互換性があります。  
 lisp.envで内部変数にアクセスできます  
 
