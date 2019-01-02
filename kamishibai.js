@@ -2,11 +2,22 @@
 const kamishibai = parent=>{
 
 const
+  $id = id=> document.getElementById(id),
+  $classes = c=> document.getElementsByClassName(c),
+  $mk = (type, ...objs)=> addIn(document.createElement(type), ...objs),
+  $remove = e=> e && e.parentNode && e.parentNode.removeChild(e),
+  $getClass = (e,c)=> e.getElementsByClassName(c)[0]
+
+const
   wrapper = $mk('div'),
-  element = $mk('div',{style: {position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, userSelect: 'none'}}),
-  background = $mk('img',{style:{position: 'absolute', height: '100%', width: '100%'}}),
-  layer_ele = $mk('div',{className: 'layer', style:{position: 'absolute',overflow: 'hidden', height: '100%', width: '100%'}}),
-  filter_ele = $mk('div',{className: 'filter', style:{position: 'absolute', height: '100%', width: '100%'}}),
+  element = $mk('div',
+    {style: {position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, userSelect: 'none'}}),
+  background = $mk('img', {style:{position: 'absolute', height: '100%', width: '100%'}}),
+  layer_ele = $mk('div',
+    {className: 'layer',
+     style:{position: 'absolute',overflow: 'hidden', height: '100%', width: '100%'}}),
+  filter_ele = $mk('div',
+    {className: 'filter', style:{position: 'absolute', height: '100%', width: '100%', opacity: 1}}),
   front_ele = $mk('div',{style:{position: 'absolute', height: '100%', width: '100%'}}),
   text_ele = $mk('div'),
   fukidasi = {className: 'fukidashi'},
@@ -32,25 +43,32 @@ const makeSaveData = (...datas)=>
       .reduce((pre,d)=> addIn(pre, {[d]: n_list[d]}), {})
 
 const n_list = {
+  $id: $id,
+  $classes: $classes,
+  $mk: $mk,
+  $rm: $remove,
+  'append-child': (e,c)=> e.appendChild(c),
+
   show_now: {},
   voice_path: '',
   'this-box': element,
   hito: hito,
   front: front_ele,
+  'filter-ele': filter_ele,
   setParent: parent=> parent.appendChild(wrapper),
   title: s=> title = s,
   'aspect-ratio': ratio=>{
     wrapper.classList.remove('wide','standard','cinesco','rotate-wide')
     wrapper.classList.add(ratio)
   },
-  'resize-box': (w,h)=>{
+  ['resize-box'] (w, h) {
     wrapper.classList.remove('wide','standard','cinesco','rotate-wide')
     addIn(element.style, {width: w, height: h})
   },
   'set-row-chars': a=> fukidasi.style = {fontSize: `calc(69vw / ${a})`},
   image: src=> addIn(new Image(), {src: src}),
   //video: src=> $mk('video',{src: src, loop: true, autoplay: true}),
-  bg: (img, animation)=>{
+  bg (img, animation) {
     background.src = img.src
     background.style.animation = 'none'
     background.style.animation = animation || 'fadein 0.75s'
@@ -80,26 +98,28 @@ const n_list = {
              n_list.film(),
              n_list.show_now = {})
     )(),
-  show: (name, ...ps)=>{
+  show (name, ...ps) {
     n_list.clear(name)
     layer_ele.appendChild(addIn(...ps.map(p=> hito[name][p])))
     const c = $getClass(layer_ele, name)
     if (wrapper.classList.contains('rotate-wide') && c) {
-      Array.prototype.slice.call(layer_ele.children).forEach(lc=> lc.classList.remove('talk'))
+      Array.prototype.slice.call(layer_ele.children)
+                           .forEach(lc=> lc.classList.remove('talk'))
       c.classList.add('talk')
     }
     n_list.show_now[name] = ps
   },
-  'now-show': ()=>[
+  'now-show': ()=> [
     ... Object.keys(n_list.show_now).map(k=>["shows",k, ...n_list.show_now[k]]),
     ... (n_list.bg_now ? [["bg", n_list.bg_now]] : [])
   ],
-  talk: (name,str)=>{
-    const tc = {textContent: `${name}\n「${str}」`}
+  talk (name,str) {
+    const tc = {textContent: `${name}\n「${str}」`, style: {color: 'white'}}
     const fd =  mix(fukidasi, tc)
     const c = $getClass(layer_ele, name)
     if (wrapper.classList.contains('rotate-wide') && c) {
-      Array.prototype.slice.call(layer_ele.children).forEach(lc=> lc.classList.remove('talk'))
+      Array.prototype.slice.call(layer_ele.children)
+                           .forEach(lc=> lc.classList.remove('talk'))
       c.classList.add('talk')
     }
     n_list.voice_path && n_list.voice(name + '「'+ str +'」.mp3')
@@ -110,11 +130,15 @@ const n_list = {
   preLoadVoice: (name,str)=> $mk('audio', {
     src: n_list.voice_path + name + '「'+ str +'」.mp3'
   }),
-  text: str=>{
-    const tc = {textContent: str}
+  text: (str, option)=>{
+    const tc = mix({textContent: str, style: {color: 'white'}},
+                   option && {style: option})
     addIn(text_ele, mix(fukidasi, tc))
     log.appendChild($mk('div', tc))
     log.scrollTop = log.scrollHeight
+  },
+  link: (str, url)=>{
+    
   },
   logview: ()=>{
     text_ele.style.visibility = 'hidden'
@@ -214,19 +238,6 @@ lisp.reader_macros.push(str=>
     '(talk "$1" "$2") wt '))
 lisp.reader_macros.push(str=>
   str.replace(/^\s*[　](.*)$/gm, '(text "$1") wt '))
-
-// 日本語別名登録 //
-addIn(n_list, {
-  人物: n_list.make,
-  背景: n_list.bg,
-  消去: n_list.crear,
-  スイッチ: n_list['switch'],
-  分岐: n_list['select']
-})
-addIn(lisp.macro, {
-  表示: lisp.macro.shows,
-  章: lisp.macro.chapter,
-})
 
 ///init///
 n_list['aspect-ratio']('wide')

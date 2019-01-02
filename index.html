@@ -8,7 +8,6 @@
  <meta name="mobile-web-app-capable" content="yes">
  <meta name="description" content="">
  <title></title>
- <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.4/lodash.js"></script>
  <link rel="stylesheet" type="text/css" href="kamishibai.css">
  <style type="text/css">
   #repl-visible-button { position: absolute; left: 45%; z-index: 99; opacity: 0.75; }
@@ -27,61 +26,34 @@
   <button id="DoButton">Do</button>
   return:<textarea id="result" rows=1></textarea>
  </div>
-
+<script src="anime.js"></script>
 <script src="lisp.js"></script>
-<script>
-'use strict'
-const get = (url, fn)=>{
-  const xhr = new XMLHttpRequest()
-  xhr.open('GET', url, true)
-  xhr.onload = ()=> xhr.status === 200 && fn && fn(xhr.responseText)
-  xhr.send()
-}
-const post = (url, msg, fn)=>{
-  const xhr = new XMLHttpRequest()
-  xhr.open('POST', url, true)
-  xhr.setRequestHeader('Content-Type','application/json')
-  xhr.onload = ()=> xhr.status === 200 && fn && fn(xhr.responseText)
-  xhr.send(msg)
-}
-const
-  $id = id=> document.getElementById(id),
-  $classes = c=> document.getElementsByClassName(c),
-  $mk = (type, ...objs)=> addIn(document.createElement(type), ...objs),
-  $remove = e=> e && e.parentNode && e.parentNode.removeChild(e),
-  $getClass = (e,c)=> e.getElementsByClassName(c)[0]
-
-/*** Script ***/
-
-$id('DoButton').onclick = e=>{
-  $id('result').value = lisp.exec($id('source').value)
-  $id('history').value = $id('history').value + $id('source').value
-  $id('history').scrollTop = $id('history').scrollHeight
-  $id('source').value = ''
-}
-$id('source').onkeyup = e=>
-  e.keyCode === 13 && !e.shiftKey &&
-    (e.preventDefault(), $id('DoButton').onclick(e))
-$id('source').onkeypress =e=> e.stopPropagation()
-addIn(lisp.env, {
-  $id: $id,
-  $classes: $classes,
-  $mk: $mk,
-  $rm: $remove,
-  'append-child': (e,c)=> e.appendChild(c)
-}, {'_': _})
-</script>
 <script src="kamishibai.js"></script>
 <script>
-kamishibai(document.body)
-{
-// repl visible //
+'use strict'
+{ // block scope //
+  const $id = id=> document.getElementById(id)
+
+  $id('DoButton').onclick = e=>{
+    $id('result').value = lisp.exec($id('source').value)
+    $id('history').value = $id('history').value + $id('source').value
+    $id('history').scrollTop = $id('history').scrollHeight
+    $id('source').value = ''
+  }
+  $id('source').onkeyup = e=>
+    e.keyCode === 13 && !e.shiftKey &&
+      (e.preventDefault(), $id('DoButton').onclick(e))
+  $id('source').onkeypress =e=> e.stopPropagation()
+  addIn(lisp.env, {anime: anime})
+  kamishibai(document.body)
+
+  // repl visible //
   let vi = false
   const replHidden = e=>
     $id('repl-box').style.display = (vi= !vi) ? 'none' : 'block'
   $id('repl-visible-button').onclick = replHidden
 
-// get url param //
+  // get url param //
   const url_param = location.search.substring(1).split('&').reduce((r,s)=>{
     const kv = s.split('=')
     r[kv[0]] = kv[1]

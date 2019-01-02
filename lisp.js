@@ -10,15 +10,27 @@ const
             : addIn(obj[k] = {}, a[k])
           : obj[k] = a[k])),
      obj),
-  mix = (...args) => addIn({}, ...args),
+  mix = (...args)=> addIn({}, ...args),
+  // mix = (...args)=> Object.assign(...args)
+  duo = (l, f=(x,y,index)=>[x,y])=>
+    l.reduce((pre,a,i)=> pre.concat(i%2 ? [] : [f(a, l[i+1], i/2)]) ,[])
+
+const lisp =
+/*{
+  n_list, // lisp内で利用可能な関数リスト
+  macro,  // lisp内で利用可能なマクロリスト
+  reader_macro, // リーダマクロリスト
+  exec // (String body)=>result / lisp実行用関数
+}*/
+(()=>{
+
+const
   addOn = (obj, ...arg)=>
     (arg.forEach(a=>
       a && Object.keys(a).forEach(k=> obj[k] = a[k])),
      obj),
   even = n=> !(n%2),
   odd = n=> n%2,
-  duo = (l, f=(x,y,index)=>[x,y])=>
-    l.reduce((pre,a,i)=> pre.concat(i%2 ? [] : [f(a, l[i+1], i/2)]) ,[]),
   kv2obj = (keys, values, ori={})=>
     keys.reduce((pre,key,i)=>(pre[key] = values[i], pre), ori),
   typeOf = x=>
@@ -51,14 +63,6 @@ const
       fn(obj) : keys(obj).reduce((r,k)=>
         (r[k] = objDigger(obj[k]), r), isArray(obj) ? [] : {})
 
-const lisp =
-/*{
-  n_list, // lisp内で利用可能な関数リスト
-  macro,  // lisp内で利用可能なマクロリスト
-  reader_macro, // リーダマクロリスト
-  exec // (String body)=>result / lisp実行用関数
-}*/
-(()=>{
 
 const n_list = mkValFreezeObj({
   grobal: this, 'window': this, // this is window or grobal or module
@@ -116,6 +120,7 @@ const n_list = mkValFreezeObj({
   'is-object': isObject,
   keys: keys,
   values: o=> Object.values(o),
+  entries: o=> Object.entries(o),
   'is-array': isArray,
   reduce: (f,a,b)=> Array.prototype.reduce.call(f,a,b),
   map: (f,a)=> Array.prototype.map.call(f,a),
@@ -128,6 +133,7 @@ const n_list = mkValFreezeObj({
   join: (a,s)=> a.join(s),
   regexp: (str, op)=> new RegExp(str, op),
   load: url=> {
+    if (!XMLHttpRequest) return;
     const xhr = new XMLHttpRequest()
     xhr.open('GET', url, false) // sync //
     xhr.onload = ()=> xhr.status === 200 && exec(xhr.responseText)
@@ -136,7 +142,8 @@ const n_list = mkValFreezeObj({
   'try': _try,
   compose: compose,
   conjoin: conjoin,
-  disjoin: disjoin
+  disjoin: disjoin,
+  'set-timeout': (fn, time)=> setTimeout(fn, time)
 })
 
 const macro = mkValFreezeObj({
