@@ -44,7 +44,7 @@
     e.keyCode === 13 && !e.shiftKey &&
       (e.preventDefault(), $id('DoButton').onclick(e))
   $id('source').onkeypress =e=> e.stopPropagation()
-  addIn(lisp.env, {anime: anime})
+  anime && addIn(lisp.env, {anime: anime})
   kamishibai(document.body)
 
   // repl visible //
