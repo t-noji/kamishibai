@@ -42,6 +42,7 @@ const makeSaveData = (...datas)=>
     ['chapter-now', 'chapter-now-num', ...datas]
       .reduce((pre,d)=> addIn(pre, {[d]: n_list[d]}), {})
 
+const env = lisp.env
 const n_list = {
   $id: $id,
   $classes: $classes,
@@ -50,6 +51,7 @@ const n_list = {
   'append-child': (e,c)=> e.appendChild(c),
 
   show_now: {},
+  auto_mode: false,
   voice_path: '',
   'this-box': element,
   hito: hito,
@@ -57,6 +59,7 @@ const n_list = {
   'filter-ele': filter_ele,
   setParent: parent=> parent.appendChild(wrapper),
   title: s=> title = s,
+
   'aspect-ratio': ratio=>{
     wrapper.classList.remove('wide','standard','cinesco','rotate-wide')
     wrapper.classList.add(ratio)
@@ -113,7 +116,7 @@ const n_list = {
     ... Object.keys(n_list.show_now).map(k=>["shows",k, ...n_list.show_now[k]]),
     ... (n_list.bg_now ? [["bg", n_list.bg_now]] : [])
   ],
-  talk (name,str) {
+  talk (name, str) {
     const tc = {textContent: `${name}\n「${str}」`, style: {color: 'white'}}
     const fd =  mix(fukidasi, tc)
     const c = $getClass(layer_ele, name)
@@ -122,20 +125,22 @@ const n_list = {
                            .forEach(lc=> lc.classList.remove('talk'))
       c.classList.add('talk')
     }
-    n_list.voice_path && n_list.voice(name + '「'+ str +'」.mp3')
+    env.voice_path && n_list.voice(name + '「'+ str +'」.mp3')
     addIn(text_ele, fd)
     log.appendChild($mk('div', tc))
     log.scrollTop = log.scrollHeight
+    if (env.auto_mode && !env.voice_path) setTimeout(n_list.front.onclick, 1800)
   },
   preLoadVoice: (name,str)=> $mk('audio', {
     src: n_list.voice_path + name + '「'+ str +'」.mp3'
   }),
-  text: (str, option)=>{
+  text (str, option) {
     const tc = mix({textContent: str, style: {color: 'white'}},
                    option && {style: option})
     addIn(text_ele, mix(fukidasi, tc))
     log.appendChild($mk('div', tc))
     log.scrollTop = log.scrollHeight
+    if (env.auto_mode) setTimeout(n_list.front.onclick, 1800)
   },
   link: (str, url)=>{
     
@@ -148,9 +153,13 @@ const n_list = {
       log.style.visibility = 'hidden'
     }
   },
-  voice: url=> voice_ele.src = n_list.voice_path + url,
+  voice (url) {
+    voice_ele.src = env.voice_path + url
+    voice_ele.onended = e=> env.auto_mode && setTimeout(this.front.onclick, 700)
+  },
   'voice-path': path=> lisp.env.voice_path = n_list.voice_path = path,
   bgm: (src,volume = 1)=> (bgm_ele.volume = volume, bgm_ele.src = src),
+
   右: {style: {left: '60%'}},
   左: {style: {right: '60%'}},
   中: {style: {top: 0, left: 0, right: 0, margin: 'auto'}},
