@@ -61,8 +61,8 @@ const
   digger = (obj, fn)=>
     (isObject(obj) ? keys(obj).length : obj.length) === 0 ?
       fn(obj) : keys(obj).reduce((r,k)=>
-        (r[k] = objDigger(obj[k]), r), isArray(obj) ? [] : {})
-
+        (r[k] = objDigger(obj[k]), r), isArray(obj) ? [] : {}),
+  isNativeFunc = f=> f.toString().indexOf('[native code]') !== -1
 
 const n_list = mkValFreezeObj({
   grobal: this, 'window': this, // this is window or grobal or module
@@ -94,7 +94,8 @@ const n_list = mkValFreezeObj({
   first: a=> a[0],
   second: a=> a[1],
   third: a=> a[2],
-  nth: (obj, ...path)=> path.reduce((o,p)=> o && o[p], obj),
+  nth: (obj, ...path)=> path.reduce((o,p)=> o && o[p] &&
+                              (isNativeFunc(o[p]) ? o[p].bind(o) : o[p]), obj),
   set: (obj, ...args)=>{
     const value = args[args.length -1]
     const path = args.slice(0,-1)
@@ -208,12 +209,10 @@ const
         : b
       : b[0] in special
           ? special[b[0]](env, ... b.slice(1))
-          : ((f= (Array.isArray(b[0])
-                   ? exe
-                   : found)(env,b[0]))=>
+          : ((f= (Array.isArray(b[0]) ? exe: found)(env,b[0]))=>
               (typeof f !== 'function'
                  && console.log('関数じゃないよ:', b[0], 'from', b),
-               f(... b.slice(1).map(b=>exe(env,b)))))()
+               f(... b.slice(1).map(b=> exe(env,b)))))()
 
 const args2env = (env, names=[], vals=[])=>{
   const slice_index = (names.indexOf('&') +1) || names.length
