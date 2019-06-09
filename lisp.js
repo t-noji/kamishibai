@@ -189,19 +189,13 @@ const
       : b[0] in macro
         ? macro[b[0]](... b.slice(1).map(macroexpand))
         : b.map(macroexpand),
-  found = 
-    ((ff= (ss,base)=>
-      ss.reduce(
-          (o,s)=> o[s] && (o[s]["bind"] // inの場合数字などに対応不可
-                            ? o[s].bind(o)
-                            : o[s]),
-          base))=>
-      (env,str)=>{
-        if (typeof str === 'function') return str
-        const ss = str === '.' ? ['.'] : str.split('.')
-        if (env[ss[0]] === undefined) console.log('無いよ:', str, '環境', env)
-        return ff(ss.slice(1), env[ss[0]])
-      })(),
+  found = (env,str)=>{
+    if (typeof str === 'function') return str
+    if (env[str] === undefined) console.log('無いよ:', str, '環境', env)
+    return env[str] && (env[str]['bind']
+                          ? env[str].bind(env)
+                          : env[str])
+  },
   exe = (env,b)=>
     !Array.isArray(b)
       ? typeof b === 'string'
@@ -239,22 +233,11 @@ const special = {
     addIn((...args)=> special.progn(args2env(env, names, args), ...body),
           {toString: ()=> `${names}-> `+ JSON.stringify(body)}),
   def: (env, ...arg)=>
-    arg.forEach((a,i)=>
-      !(i%2) // hit 0 2 4 ...
-      && (a.split('.').reduce(
-        (pre,s,j,aa)=>
-          aa[j+1] ? pre[s] || (pre[s] = {})
-                  : pre[s] = exe(env, arg[i+1]),
-        n_list))),
+    arg.forEach((a,i)=> !(i%2) && (n_list[a] = exe(env, arg[i+1]))),
   'let': (env, na, ...body)=>
       special.lambda(env, na.map(a=>a[0]), ...body)
         (...na.map(a=> exe(env, a[a.length -1]))),
-  setq: (env, cobj, body)=>{
-    const path = cobj.split('.')
-    return path.length ===1 ?
-        protoDigSetter(env, [path[0]], exe(env, body))
-      : n_list.set(env[path[0]], ...path.slice(1), exe(env, body))
-  },
+  setq: (env, cobj, body)=> protoDigSetter(env, cobj, exe(env, body)),
   quote: (env, ...s)=> s.length === 1 ? s[0] : s,
   str: (env, ...arg)=> String(...arg),
   'undefined': (env)=> undefined
