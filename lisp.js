@@ -25,10 +25,6 @@ const lisp =
 (()=>{
 
 const
-  addOn = (obj, ...arg)=>
-    (arg.forEach(a=>
-      a && Object.keys(a).forEach(k=> obj[k] = a[k])),
-     obj),
   even = n=> !(n%2),
   odd = n=> n%2,
   kv2obj = (keys, values, ori={})=>
@@ -90,7 +86,6 @@ const n_list = mkValFreezeObj({
   imlist: (...a)=> Object.freeze(a),
   string: String,
   'add-in': addIn,
-  'add-on': addOn,
   first: a=> a[0],
   second: a=> a[1],
   third: a=> a[2],
@@ -144,7 +139,11 @@ const n_list = mkValFreezeObj({
   compose: compose,
   conjoin: conjoin,
   disjoin: disjoin,
-  'set-timeout': (fn, time)=> setTimeout(fn, time)
+  'set-timeout': (fn, time)=> setTimeout(fn, time),
+  pipef: (first, ...args)=> args.reduce((pre,f)=>
+    Array.isArray(f) ? f[0](pre, ...f.slice(1)) : f(pre), first),
+  '-chainf': (first, ...args)=> args.reduce((pre,m)=>
+    Array.isArray(m) ? pre[m[0]](...m.slice(1)) : pre[m](), first)
 })
 
 const macro = mkValFreezeObj({
@@ -191,7 +190,7 @@ const
         : b.map(macroexpand),
   found = (env,str)=>{
     if (typeof str === 'function') return str
-    if (env[str] === undefined) console.log('無いよ:', str, '環境', env)
+    if (!(str in env)) throw new Error(`無いよ: ${str} in [${Object.keys(env)}]`)
     return env[str] && (env[str]['bind']
                           ? env[str].bind(env)
                           : env[str])
@@ -203,10 +202,12 @@ const
         : b
       : b[0] in special
           ? special[b[0]](env, ... b.slice(1))
-          : ((f= (Array.isArray(b[0]) ? exe: found)(env,b[0]))=>
-              (typeof f !== 'function'
-                 && console.log('関数じゃないよ:', b[0], 'from', b),
-               f(... b.slice(1).map(b=> exe(env,b)))))()
+          : (()=>{
+              const f = (Array.isArray(b[0]) ? exe: found)(env,b[0])
+              if (typeof f !== 'function') 
+                throw new Error(`関数じゃないよ:${b[0]} from [${b}]`)
+              else return f(... b.slice(1).map(b=> exe(env,b)))
+            })()
 
 const args2env = (env, names=[], vals=[])=>{
   const slice_index = (names.indexOf('&') +1) || names.length
@@ -230,7 +231,8 @@ const special = {
     (tmp=> (args.some(a=> exe(env,a[0]) && (tmp= exe(env,a[1]), true))
            ,tmp))(),
   lambda: (env, names, ...body)=>
-    addIn((...args)=> special.progn(args2env(env, names, args), ...body),
+    Object.assign((...args)=>
+                     special.progn(args2env(env, names, args), ...body),
           {toString: ()=> `${names}-> `+ JSON.stringify(body)}),
   def: (env, ...arg)=>
     arg.forEach((a,i)=> !(i%2) && (n_list[a] = exe(env, arg[i+1]))),
@@ -245,14 +247,17 @@ const special = {
 
 // 評価
 const
-  search = (str, regex, count = -1, i)=>
-     (i = str.search(regex),
-      i === -1
-        ? []
-        : [[count + i + 1, str[i]]].concat(search(str.slice(i + 1), regex, count + i + 1))),
+  search = (str, regex, l = [], count = -1, i = str.search(regex))=>
+    i === -1
+      ? l
+      : search(str.slice(i + 1), regex, l.concat([[count + i + 1, str[i]]]), count + i + 1),
+  allIndexOf = (str, val, is = [], i = 0)=>{
+    while (i++ < str.length) if (str[i] === val) is.push(i)
+    return is
+  },
   escOne = (str, key, inFn =s=>s, outFn =s=>s)=>{
-    const l = [-1, ...search(str, /"/).map(x=>x[0])]
-    return l.reduce((p,c,i)=>p+ (i % 2 ? inFn : outFn)(str.slice(c+1, l[i+1])), '')
+    const l = [-1, ...allIndexOf(str, '"')]
+    return l.reduce((p,c,i)=> p + (i % 2 ? inFn : outFn)(str.slice(c + 1, l[i + 1])), '')
   },
   readerFirstMacroK = (marker,macro)=>
     str=> str.replace(RegExp(`${marker}\\(`, 'g'), `(${macro} `),
@@ -294,9 +299,7 @@ const exec = str=>{
   console.log('json:', json)
   const c_json = `[${json}]`
   let jp
-  try {
-    jp = JSON.parse(c_json)
-  }
+  try { jp = JSON.parse(c_json) }
   catch (err) {
     console.error(err.name +': '+ err.message)
     if (/column/.test(err.message)) {

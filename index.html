@@ -37,8 +37,9 @@
   $id('DoButton').onclick = e=>{
     $id('result').value = lisp.exec($id('source').value)
     $id('history').value = $id('history').value + $id('source').value
-    $id('history').scrollTop = $id('history').scrollHeight
     $id('source').value = ''
+    // 比較的重い処理なので非同期
+    setTimeout(()=> $id('history').scrollTop = $id('history').scrollHeight, 16)
   }
   $id('source').onkeyup = e=>
     e.keyCode === 13 && !e.shiftKey &&

@@ -203,8 +203,9 @@ lisp.exec(`
           (i (or index 0)))
        (if (and index (< index (length l)))
          (each (slice l 0 index) #((a) (eval a))))
-       (let ((sc #((i) (def chapter-now-num i)
-                       (eval (nth l i)))))
+       (let ((sc #((i) (if (< i (length l))
+                         (progn (def chapter-now-num i)
+                                (eval (nth l i)))))))
          (set front 'onclick #(() (sc (incf i))))
          (set window 'onkeypress
               #((e) (if (= (. e 'keyCode) 32) (sc (incf i)))))
@@ -221,10 +222,10 @@ lisp.exec(`
     (duo body #((o f)
                 (append-child
                   front
-                  (let ((sw ($mk "div" (obj 'className "switch") o)))
-                    (set sw 'onclick #((e) (. e 'stopPropagation)
-                                           (f e)))
-                    sw)))))
+                  ($mk "div" (obj 'className "switch"
+                                  'onclick #((e) ((. e 'stopPropagation))
+                                                 (f e)))
+                             o)))))
 
   (defun select (& body)
     (set front 'onclick through)
@@ -233,11 +234,11 @@ lisp.exec(`
       (duo body #((o f)
                   (append-child
                     ele
-                    (let ((sw ($mk "div" (obj 'className "switch") o)))
-                      (set sw 'onclick #((e) ($rm ele)
-                                             (. e stopPropagation)
-                                             (f e)))
-                      sw))))))
+                    ($mk "div" (obj 'className "switch"
+                                    'onclick #((e) ($rm ele)
+                                                   ((. e 'stopPropagation))
+                                                   (f e)))
+                               o))))))
 
   (defun reshow () (eval (now-show)))
 `)
