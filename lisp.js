@@ -1,28 +1,4 @@
-'use strict'
-const
-  addIn = (obj, ...arg)=>
-    (arg.forEach(a=>
-      a && Object.keys(a).forEach(k=>
-        a[k] instanceof Object && typeof a[k] !== 'function'
-          && (!Array.isArray(a[k])) && !(a[k] instanceof HTMLElement)
-          ? k in obj
-            ? addIn(obj[k], a[k])
-            : addIn(obj[k] = {}, a[k])
-          : obj[k] = a[k])),
-     obj),
-  mix = (...args)=> addIn({}, ...args),
-  // mix = (...args)=> Object.assign(...args)
-  duo = (l, f=(x,y,index)=>[x,y])=>
-    l.reduce((pre,a,i)=> pre.concat(i%2 ? [] : [f(a, l[i+1], i/2)]) ,[])
-
-const lisp =
-/*{
-  n_list, // lisp内で利用可能な関数リスト
-  macro,  // lisp内で利用可能なマクロリスト
-  reader_macro, // リーダマクロリスト
-  exec // (String body)=>result / lisp実行用関数
-}*/
-(()=>{
+import {addIn, mix, duo} from './nl.js'
 
 const
   even = n=> !(n%2),
@@ -39,14 +15,13 @@ const
   isObject = (o,t)=>(t= typeof o, o !== null && (t === 'object' || t === 'function')), 
   _try = (t,c,f)=>{
     let tmp = undefined
-    try { tmp = t() } catch (e) { tmp = c && c(e) } finally { f && f() }
-    return tmp
+    try { return tmp = t() } catch (e) { tmp = c && c(e) } finally { f && f() }
   },
   valueFreeze = obj=>
     Object.keys(obj).reduce((o,k)=>
       (o[k] = {value: obj[k], writable: false,
                enumerable: true, configurable: false}, o), {}),
-  mkValFreezeObj = obj=> Object.create(Object.prototype, valueFreeze(obj)),
+  mkValFreezeObj = obj=> Object.create({}, valueFreeze(obj)),
   compose = (fn, ...fs)=> (...args)=> fs.reduce((r,f)=> f(r), fn(...args)),
   conjoin = (...fs)=> a=> fs.every(f=> f(a)),
   disjoin = (...fs)=> a=> fs.some(f=> f(a)),
@@ -54,17 +29,23 @@ const
       o.hasOwnProperty(p) ?
         (o[p] = v) : protoDigSetter(Object.getPrototypeOf(o),p,v),
   keys = o=> Object.keys(o),
+  inkeys = o=> {
+    const keys = []
+    for (const key in o) keys.push(key)
+    return keys
+  },
   digger = (obj, fn)=>
     (isObject(obj) ? keys(obj).length : obj.length) === 0 ?
       fn(obj) : keys(obj).reduce((r,k)=>
         (r[k] = objDigger(obj[k]), r), isArray(obj) ? [] : {}),
   isNativeFunc = f=> f.toString().indexOf('[native code]') !== -1
 
-const n_list = mkValFreezeObj({
-  grobal: this, 'window': this, // this is window or grobal or module
+const grobal_base = {
+  grobal: this, 'window': window, // this is window or grobal or module
   t: true,
   'true': true,
   'false': false,
+  'undefined': undefined,
   nil: null,
   through: a=> a,
   '+': (x, ...args)=> args.reduce((p,a)=> p + a, x),
@@ -98,8 +79,8 @@ const n_list = mkValFreezeObj({
       (o,p)=> p in o ? o[p] : o[p] = {}, obj
     )[path[path.length -1]] = value
   },
-  '.': (...args)=> n_list.nth(...args),
-  get: (...args)=> n_list.nth(...args),
+  '.': (...args)=> grobal_base.nth(...args),
+  get: (...args)=> grobal_base.nth(...args),
   'mix-kv': (o,k,v)=> Object.assign(o, {[k]: v}),
   even: even,
   odd: odd,
@@ -109,8 +90,9 @@ const n_list = mkValFreezeObj({
   append: (...args)=> [].concat(...args),
   log: a=> (console.log(a), a),
   length: l=> l.length,
+  slice: (...args)=> Array.prototype.slice.call(...args),
   obj: (...args)=> duo(args).reduce((pre,a)=> (pre[a[0]] = a[1], pre), {}),
-  imobj: (...args)=> Object.freeze(n_list.obj(...args)),
+  imobj: (...args)=> Object.freeze(grobal_base.obj(...args)),
   inheritance: (...args)=> Object.create(...args),
   'typeof': typeOf,
   'is-object': isObject,
@@ -118,23 +100,16 @@ const n_list = mkValFreezeObj({
   values: o=> Object.values(o),
   entries: o=> Object.entries(o),
   'is-array': isArray,
-  reduce: (f,a,b)=> Array.prototype.reduce.call(f,a,b),
-  map: (f,a)=> Array.prototype.map.call(f,a),
-  each: (f,a)=> Array.prototype.forEach.call(f,a),
-  filter: (f,a)=> Array.prototype.filter.call(f,a),
-  some: (f,a)=> Array.prototype.some.call(f,a),
-  every: (f,a)=> Array.prototype.every.call(f,a),
-  find: (f,a)=> Array.prototype.find.call(f,a),
-  'find-index': (f,a)=> Array.prototype.findIndex.call(f,a),
+  reduce: (f,a, ...b)=> Array.prototype.reduce.call(a,f, ...b),
+  map: (f,a)=> Array.prototype.map.call(a,f),
+  each: (f,a)=> Array.prototype.forEach.call(a,f),
+  filter: (f,a)=> Array.prototype.filter.call(a,f),
+  some: (f,a)=> Array.prototype.some.call(a,f),
+  every: (f,a)=> Array.prototype.every.call(a,f),
+  find: (f,a)=> Array.prototype.find.call(a,f),
+  'find-index': (f,a)=> Array.prototype.findIndex.call(a,f),
   join: (a,s)=> a.join(s),
   regexp: (str, op)=> new RegExp(str, op),
-  load: url=> {
-    if (!XMLHttpRequest) return;
-    const xhr = new XMLHttpRequest()
-    xhr.open('GET', url, false) // sync //
-    xhr.onload = ()=> xhr.status === 200 && exec(xhr.responseText)
-    xhr.send()
-  },
   'try': _try,
   compose: compose,
   conjoin: conjoin,
@@ -144,7 +119,25 @@ const n_list = mkValFreezeObj({
     Array.isArray(f) ? f[0](pre, ...f.slice(1)) : f(pre), first),
   '-chainf': (first, ...args)=> args.reduce((pre,m)=>
     Array.isArray(m) ? pre[m[0]](...m.slice(1)) : pre[m](), first)
-})
+}
+
+export const mkLisp = ()=> {
+/*{
+  n_list, // lisp内で利用可能な関数リスト
+  macro,  // lisp内で利用可能なマクロリスト
+  reader_macro, // リーダマクロリスト
+  exec // (String body)=>result / lisp実行用関数
+}*/
+
+const n_list = mkValFreezeObj(Object.assign({
+  load (url) {
+    if (!XMLHttpRequest) return str=> str;
+    const xhr = new XMLHttpRequest()
+    xhr.open('GET', url, false) // sync //
+    xhr.onload = ()=> xhr.status === 200 && exec(xhr.responseText)
+    xhr.send()
+  }
+}, grobal_base))
 
 const macro = mkValFreezeObj({
   defmacro: (name, namelist, body)=>{
@@ -188,14 +181,14 @@ const
       : b[0] in macro
         ? macro[b[0]](... b.slice(1).map(macroexpand))
         : b.map(macroexpand),
-  found = (env,str)=>{
+  found = (env, str)=>{
     if (typeof str === 'function') return str
-    if (!(str in env)) throw new Error(`無いよ: ${str} in [${Object.keys(env)}]`)
+    if (!(str in env)) throw new Error(`無いよ: ${str} in [${inkeys(env)}]`)
     return env[str] && (env[str]['bind']
                           ? env[str].bind(env)
                           : env[str])
   },
-  exe = (env,b)=>
+  exe = (env, b)=>
     !Array.isArray(b)
       ? typeof b === 'string'
         ? found(env,b)
@@ -203,7 +196,7 @@ const
       : b[0] in special
           ? special[b[0]](env, ... b.slice(1))
           : (()=>{
-              const f = (Array.isArray(b[0]) ? exe: found)(env,b[0])
+              const f = (Array.isArray(b[0]) ? exe: found)(env, b[0])
               if (typeof f !== 'function') 
                 throw new Error(`関数じゃないよ:${b[0]} from [${b}]`)
               else return f(... b.slice(1).map(b=> exe(env,b)))
@@ -211,13 +204,13 @@ const
 
 const args2env = (env, names=[], vals=[])=>{
   const slice_index = (names.indexOf('&') +1) || names.length
-  return Object.create(env,
-    names.slice(0, slice_index).reduce((pre,name,i)=>
+  const new_env = names.slice(0, slice_index).reduce((pre, name, i)=>
       (name === '&'
         ? pre[names[i+1]] = {value: vals.slice(i), writable: true} // & hoge<-
         : pre[name] = {value: vals[i], writable: true},
        pre),
-      {}))
+      {})
+  return Object.create(env, new_env)
 }
 
 // 特殊式
@@ -231,15 +224,15 @@ const special = {
     (tmp=> (args.some(a=> exe(env,a[0]) && (tmp= exe(env,a[1]), true))
            ,tmp))(),
   lambda: (env, names, ...body)=>
-    Object.assign((...args)=>
-                     special.progn(args2env(env, names, args), ...body),
-          {toString: ()=> `${names}-> `+ JSON.stringify(body)}),
+    Object.assign((...args)=> special.progn(args2env(env, names, args), ...body),
+                  {toString: ()=> `${names}-> `+ JSON.stringify(body)}),
   def: (env, ...arg)=>
     arg.forEach((a,i)=> !(i%2) && (n_list[a] = exe(env, arg[i+1]))),
   'let': (env, na, ...body)=>
       special.lambda(env, na.map(a=>a[0]), ...body)
         (...na.map(a=> exe(env, a[a.length -1]))),
   setq: (env, cobj, body)=> protoDigSetter(env, cobj, exe(env, body)),
+  //'var': (env, name, body)=> env[name] = exe(env, body),
   quote: (env, ...s)=> s.length === 1 ? s[0] : s,
   str: (env, ...arg)=> String(...arg),
   'undefined': (env)=> undefined
@@ -331,4 +324,4 @@ return {
   reader_macros: reader_macros,
   exec: exec,
 }
-})();
+}

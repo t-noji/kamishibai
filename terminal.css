@@ -1,0 +1,34 @@
+.terminal {
+  position: absolute;
+  top: 2em;
+  left: 60%;
+  right: 1em;
+  color: white;
+  padding: 0.5em;
+  background-color: rgba(0,0,0, 0.4);
+}
+.terminal > .std_in {
+  border: none;
+  color: white;
+  background: rgba(255,255,255, 0.2);
+  height: 6em;
+}
+.terminal > .std_out {
+  height: 24em;
+  overflow-y:  auto;
+}
+.terminal > .std_out > .out {
+  color: green;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+.terminal > .std_out > .err {
+  color: red;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+.terminal > .std_out > .in {
+  color: white;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}

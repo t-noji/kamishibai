@@ -20,7 +20,7 @@ textarea{ width: 100%; }
 
 .fukidashi{
   white-space: pre-wrap;
-  height: 5em; width: 70%;
+  height: 6em; width: 70%;
   position: absolute; bottom: 0px; left: 15%;
   color: white; text-shadow: 0 0.075em 0.2em black;
   font-size: calc(69vw / 36);
@@ -73,7 +73,7 @@ textarea{ width: 100%; }
 
 /*** optional ***/
 .wide { position: relative; width: 100%; }
-.wide:before { content: ""; display: block; padding-top: 56.25%; }
+.wide:before { content: ""; display: block; padding-top: 56.23%; }
 .standard { position: relative; width: 100%; }
 .standard:before { content: ""; display: block; padding-top: 75%; }
 .standard .fukidashi{ left: 5%; width: 90%; }

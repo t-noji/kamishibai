@@ -1,5 +1,5 @@
-'use strict'
-const kamishibai = parent=>{
+import {addIn, mix, duo} from './nl.js'
+const kamishibai = (parent, lisp)=>{
 
 const
   $id = id=> document.getElementById(id),
@@ -24,18 +24,18 @@ const
   log = $mk('div', {className: 'log'}),
   log_x = $mk('div', {className: 'log-x', textContent: 'x'}),
   bgm_ele = $mk('audio', {autoplay: true, loop: true}),
-  voice_ele = $mk('audio', {autoplay: true}),
-  hito = {}
+  voice_ele = $mk('audio', {autoplay: true})
 
-element.appendChild(background)
-element.appendChild(layer_ele)
-element.appendChild(filter_ele)
-element.appendChild(text_ele)
-element.appendChild(front_ele)
- log.appendChild(log_x)
-element.appendChild(log)
+ element.appendChild(background)
+ element.appendChild(layer_ele)
+ element.appendChild(filter_ele)
+ element.appendChild(text_ele)
+ element.appendChild(front_ele)
+  log.appendChild(log_x)
+ element.appendChild(log)
 wrapper.appendChild(element)
 parent.appendChild(wrapper)
+parent.classList.add('kamishibai')
 
 let title = ''
 const makeSaveData = (...datas)=>
@@ -44,6 +44,16 @@ const makeSaveData = (...datas)=>
 
 const env = lisp.env
 const n_list = {
+  kamishibai: {
+    element: wrapper,
+    filter_ele,
+    front_ele,
+    layer_ele,
+    bgm_ele,
+    voice_ele,
+    log_ele: log,
+    fukidasi
+  },
   $id: $id,
   $classes: $classes,
   $mk: $mk,
@@ -54,7 +64,6 @@ const n_list = {
   auto_mode: false,
   voice_path: '',
   'this-box': element,
-  hito: hito,
   front: front_ele,
   'filter-ele': filter_ele,
   setParent: parent=> parent.appendChild(wrapper),
@@ -69,18 +78,21 @@ const n_list = {
     addIn(element.style, {width: w, height: h})
   },
   'set-row-chars': a=> fukidasi.style = {fontSize: `calc(69vw / ${a})`},
-  image: src=> addIn(new Image(), {src: src}),
+  image: src=> (addIn(new Image(), {src, onerror (e) { lisp.kamishibaiError(e) }}), {src}),
   //video: src=> $mk('video',{src: src, loop: true, autoplay: true}),
   bg (img, animation) {
-    background.src = img.src
     background.style.animation = 'none'
-    background.style.animation = animation || 'fadein 0.75s'
+    setTimeout(e=>
+        addIn(background, {src: img.src,
+                           style:{animation: animation || 'fadein 0.75s'}}),
+      0)
     n_list.bg_now = Object.keys(n_list).find(k=> (img === n_list[k]) && k)
   },
-  make: (name, ...ks)=>
-    hito[name] = duo(ks).reduce((pre,k)=>
+  make (name, ...ks) {
+    env[name] = duo(ks).reduce((pre,k)=>
       addIn(pre, {[k[0]]: addIn(k[1],
-        {className: name, style: {position: 'absolute', width: 'auto'}})}), {}),
+        {className: name, style: {position: 'absolute', width: 'auto'}})}), {})
+  },
   film: fil=>
     fil
       ? typeof fil === 'string'
@@ -103,11 +115,11 @@ const n_list = {
     )(),
   show (name, ...ps) {
     n_list.clear(name)
-    layer_ele.appendChild(addIn(...ps.map(p=> hito[name][p])))
+    layer_ele.appendChild(addIn(new Image(), ...ps))
     const c = $getClass(layer_ele, name)
     if (wrapper.classList.contains('rotate-wide') && c) {
-      Array.prototype.slice.call(layer_ele.children)
-                           .forEach(lc=> lc.classList.remove('talk'))
+      Array.from(layer_ele.children)
+           .forEach(lc=> lc.classList.remove('talk'))
       c.classList.add('talk')
     }
     n_list.show_now[name] = ps
@@ -118,7 +130,7 @@ const n_list = {
   ],
   talk (name, str) {
     const tc = {textContent: `${name}\n「${str}」`, style: {color: 'white'}}
-    const fd =  mix(fukidasi, tc)
+    const fd = mix(fukidasi, tc)
     const c = $getClass(layer_ele, name)
     if (wrapper.classList.contains('rotate-wide') && c) {
       Array.prototype.slice.call(layer_ele.children)
@@ -135,7 +147,7 @@ const n_list = {
     src: n_list.voice_path + name + '「'+ str +'」.mp3'
   }),
   text (str, option) {
-    const tc = mix({textContent: str, style: {color: 'white'}},
+    const tc = mix({textContent: '\n'+ str, style: {color: 'white'}},
                    option && {style: option})
     addIn(text_ele, mix(fukidasi, tc))
     log.appendChild($mk('div', tc))
@@ -162,8 +174,9 @@ const n_list = {
 
   右: {style: {left: '60%'}},
   左: {style: {right: '60%'}},
-  中: {style: {top: 0, left: 0, right: 0, margin: 'auto'}},
+  中: {style: {left: '0', right: '0', top: '0', margin: 'auto'}},
   上下: {style: {animation: 'vertical 0.5s ease infinite alternate'}},
+  上下早: {style: {animation: 'vertical 0.25s ease infinite alternate'}},
   左右: {style: {animation: 'horizontal 0.5s ease infinite alternate'}},
   停止: {style: {animation: 'none'}},
   'quick-save': (...args)=>
@@ -179,8 +192,13 @@ const n_list = {
       lisp.exec(`(script-eval ${cn} ${cnn})`)
     }
     else alert('セーブデータが無いよ')
+  },
+  's-try' (t) {
+    try { return t() }
+    catch (e) { lisp.kamishibaiError(e) }
   }
 }
+lisp.kamishibaiError = e=> { throw e } // defaultではただエラーを投げる
 addIn(lisp.env, n_list)
 
 const splitArray = (l,key,i)=>
@@ -197,24 +215,28 @@ lisp.exec(`
 
   (defun script-eval (lines index)
     (if voice_path
-      (each lines #((l) (if (= (first l) "talk")
-                          (preLoadVoice (. l 1 1) (. l 2 1))))))
+      (each #((l) (if (= (first l) "talk")
+                    (preLoadVoice (. l 1 1) (. l 2 1))))
+            lines))
     (let ((l (split-array lines "wt"))
           (i (or index 0)))
        (if (and index (< index (length l)))
-         (each (slice l 0 index) #((a) (eval a))))
-       (let ((sc #((i) (if (< i (length l))
-                         (progn (def chapter-now-num i)
-                                (eval (nth l i)))))))
+         (each #((a) (eval a)) (slice l 0 index)))
+       (let ((sc #((i) (s-try #(() (if (< i (length l))
+                                     (progn (def chapter-now-num i)
+                                            (eval (nth l i)))))
+                              #((e) (log e))))))
          (set front 'onclick #(() (sc (incf i))))
-         (set window 'onkeypress
-              #((e) (if (= (. e 'keyCode) 32) (sc (incf i)))))
+         (set window 'onkeydown
+              #((e) (if (= (. e 'keyCode) 32)
+                          (progn ((. e 'preventDefault))
+                                 (sc (incf i))))))
          (sc 0))))
 
-  (defmacro shows (& body)
-   \`(show ,@(map body #((b) (list 'str b)))))
+  (defmacro shows (hito & params)
+   \`(show (str ,hito) ,@(map #((p) \`(get ,hito (str ,p))) params)))
 
-  (defun wt () (undefined))
+  (def wt undefined)
 
   (defun switch (& body)
     (set front 'onclick through)
@@ -241,6 +263,7 @@ lisp.exec(`
                                o))))))
 
   (defun reshow () (eval (now-show)))
+  (defun style (& args) (obj 'style (apply obj args)))
 `)
 
 lisp.reader_macros.push(str=>
@@ -251,4 +274,7 @@ lisp.reader_macros.push(str=>
 
 ///init///
 n_list['aspect-ratio']('wide')
+
+return lisp
 }
+export {kamishibai}

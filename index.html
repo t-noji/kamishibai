@@ -9,49 +9,40 @@
  <meta name="description" content="">
  <title></title>
  <link rel="stylesheet" type="text/css" href="kamishibai.css">
+ <link rel="stylesheet" type="text/css" href="terminal.css">
  <style type="text/css">
   #repl-visible-button { position: absolute; left: 45%; z-index: 99; opacity: 0.75; }
   #repl-visible-button img { height: 1.5em; }
   #repl-box { color: white; }
+  #editable-button { font-size: 130%; position: absolute; left: 55%; z-index: 99; color: white; cursor: default; }
  </style>
-</head>
-<body>
- <div id="repl-visible-button"><img src="repl.png"/></div>
- <div id="repl-box">
-  <br/>
-  history:<br/>
-  <textarea id="history" rows=4></textarea><br>
-  source:<br/>
-  <textarea id="source" rows=3></textarea><br>
-  <button id="DoButton">Do</button>
-  return:<textarea id="result" rows=1></textarea>
- </div>
-<script src="anime.js"></script>
-<script src="lisp.js"></script>
-<script src="kamishibai.js"></script>
-<script>
-'use strict'
-{ // block scope //
+ <!--script src="anime.js"></!script-->
+ <script type="module">
+import {addIn} from './nl.js'
+import {mkLisp} from './lisp.js'
+import {kamishibai} from './kamishibai.js'
+import {mkLispTerminal} from './terminal.js'
+import Movar from './Movar.js'
+  const lisp = mkLisp()
+  window.addIn = addIn
+  window.lisp = lisp // DevTools Debugging
   const $id = id=> document.getElementById(id)
+  const $classs = c=> document.getElementsByClassName(c)
 
-  $id('DoButton').onclick = e=>{
-    $id('result').value = lisp.exec($id('source').value)
-    $id('history').value = $id('history').value + $id('source').value
-    $id('source').value = ''
-    // 比較的重い処理なので非同期
-    setTimeout(()=> $id('history').scrollTop = $id('history').scrollHeight, 16)
+  //window.anime && addIn(lisp.env, {anime: window.anime})
+  kamishibai(document.body, lisp)
+  const term = mkLispTerminal(document.body, lisp)
+  lisp.kamishibaiError = e=> term.errAlert(e.toString())
+
+  const movar = new Movar(lisp)
+  movar.visual = false
+  $id('editable-button').onclick = e=> {
+    if (movar.visual = !movar.visual) movar.editStart()
+    else term.stdAlert(movar.editEnd())
   }
-  $id('source').onkeyup = e=>
-    e.keyCode === 13 && !e.shiftKey &&
-      (e.preventDefault(), $id('DoButton').onclick(e))
-  $id('source').onkeypress =e=> e.stopPropagation()
-  anime && addIn(lisp.env, {anime: anime})
-  kamishibai(document.body)
 
   // repl visible //
-  let vi = false
-  const replHidden = e=>
-    $id('repl-box').style.display = (vi= !vi) ? 'none' : 'block'
+  const replHidden = e=> term.hidden()
   $id('repl-visible-button').onclick = replHidden
 
   // get url param //
@@ -62,7 +53,10 @@
   }, {})
   if (url_param.load) lisp.env.load(url_param.load)
   if (url_param.replbox === 'hidden') replHidden()
-}
 </script>
+</head>
+<body>
+ <div id="repl-visible-button"><img src="repl.png"/></div>
+ <div id="editable-button">✎</div>
 </body>
 </html>
