@@ -1,10 +1,13 @@
-import { addIn } from './nl.js';
-import AlphaChecker from './AlphaChecker.js';
+import { addIn, eleAdd } from './nl.js';
+import { AlphaCheckers } from './AlphaChecker.js';
+import mkContextmenu from './Contextmenu.js';
 const pixToPar = (ele, point) => {
     const parent = ele.parentElement;
     ele.style.left = 100 * point.x / parent.clientWidth + '%';
     ele.style.top = 100 * point.y / parent.clientHeight + '%';
 };
+const relative_path = location.origin + location.pathname;
+const convertURI = (uri) => decodeURI(uri).replace(RegExp('^' + relative_path), '');
 export default class Mover {
     constructor(lisp) {
         this.elements = [];
@@ -19,43 +22,32 @@ export default class Mover {
         this.ondragend = (e) => { this.target = null; };
         this.lisp = lisp;
     }
-    mkDragstart(checker) {
-        const self = this;
-        return function (e, inloop) {
-            if (!inloop)
-                for (const ele of [...self.elements].reverse())
-                    ele.ondragstart(e, true);
-            else if (!self.target && checker.isOnPixel(e)) {
-                this.style.left = this.offsetLeft + 'px';
-                this.style.top = this.offsetTop + 'px';
-                this.style.margin = '';
-                self.target = { ele: this, start_x: e.pageX - this.offsetLeft, start_y: e.pageY - this.offsetTop };
-            }
-        };
+    click(ele, e) {
+        const name = ele.className;
+        const env = this.lisp.env[name];
+        const items = Object.entries(env).filter(([k, v]) => v.src)
+            .map(([k, v]) => ({ name: k, act: () => eleAdd(ele, v) }));
+        mkContextmenu(e, items);
     }
-    mkOnweel(checker) {
-        const self = this;
-        return function (e, inloop) {
-            if (!inloop)
-                for (const ele of [...self.elements].reverse())
-                    ele.onwheel(e, true);
-            else if (checker.isOnPixel(e)) {
-                const x = e.deltaY > 0 ? (1 / 1.1) : 1.1;
-                const now_parsent = parseInt(this.style.height);
-                this.style.height = now_parsent * x + '%';
-                e.preventDefault();
-            }
-        };
+    dragstart(ele, e) {
+        ele.style.left = ele.offsetLeft + 'px';
+        ele.style.top = ele.offsetTop + 'px';
+        ele.style.margin = '';
+        this.target = { ele, start_x: e.pageX - ele.offsetLeft, start_y: e.pageY - ele.offsetTop };
+    }
+    wheel(ele, e) {
+        const x = e.deltaY > 0 ? (1 / 1.1) : 1.1;
+        const now_parsent = parseInt(ele.style.height) || 150;
+        ele.style.height = now_parsent * x + '%';
+        e.preventDefault();
     }
     editStart() {
         const kms = this.lisp.env.kamishibai;
         this.overlaps = [kms.log_ele, kms.front_ele, kms.fukidasi, kms.filter_ele];
         this.overlaps.forEach(ele => addIn(ele, { style: { pointerEvents: 'none' } }));
         this.elements = Array.from(kms.layer_ele.children);
-        this.elements.forEach(ele => {
-            const checker = new AlphaChecker(ele);
-            addIn(ele, { draggable: true, ondragstart: this.mkDragstart(checker), ondragend, onwheel: this.mkOnweel(checker) });
-        });
+        this.checkers = new AlphaCheckers(this.elements.map(ele => ({ ele, click: e => this.click(ele, e), dragstart: e => this.dragstart(ele, e), wheel: e => this.wheel(ele, e) })));
+        this.elements.forEach(ele => eleAdd(ele, { draggable: true, onclick: (e) => this.checkers.click(e), ondragstart: (e) => this.checkers.dragstart(e), onwheel: (e) => this.checkers.wheel(e) }));
         kms.layer_ele.addEventListener('dragover', this.ondragover);
         kms.layer_ele.addEventListener('dragend', this.ondragend);
     }
@@ -66,7 +58,7 @@ export default class Mover {
         this.elements = [];
         this.lisp.env.kamishibai.layer_ele.removeEventListener('dragover', this.ondragover);
         this.lisp.env.kamishibai.layer_ele.removeEventListener('dragend', this.ondragend);
-        return eles.map(ele => `${ele.className} (style 'top "${ele.style.top}" 'left "${ele.style.left}" 'height "${ele.style.height}")`).join('\n');
+        return eles.map(ele => { var _a; return `(show "${ele.className}" (. ${ele.className} '${(_a = Object.entries(this.lisp.env[ele.className]).find(([k, v]) => v.src === convertURI(ele.src))) === null || _a === void 0 ? void 0 : _a[0]}) (style 'top "${ele.style.top}" 'left "${ele.style.left}" 'height "${ele.style.height}"))`; }).join('\n');
     }
 }
 //# sourceMappingURL=Movar.js.map

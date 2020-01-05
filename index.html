@@ -10,13 +10,14 @@
  <title></title>
  <link rel="stylesheet" type="text/css" href="kamishibai.css">
  <link rel="stylesheet" type="text/css" href="terminal.css">
+ <link rel="stylesheet" type="text/css" href="contextmenu.css">
  <style type="text/css">
   #repl-visible-button { position: absolute; left: 45%; z-index: 99; opacity: 0.75; }
   #repl-visible-button img { height: 1.5em; }
   #repl-box { color: white; }
-  #editable-button { font-size: 130%; position: absolute; left: 55%; z-index: 99; color: white; cursor: default; }
+  #editable-button { font-size: 130%; position: absolute; left: 55%; z-index: 99; color: white; cursor: default; text-shadow: 2px 2px rgba(0,0,0, 0.5);}
  </style>
- <!--script src="anime.js"></!script-->
+ <script src="anime.js"></script>
  <script type="module">
 import {addIn} from './nl.js'
 import {mkLisp} from './lisp.js'
@@ -29,7 +30,7 @@ import Movar from './Movar.js'
   const $id = id=> document.getElementById(id)
   const $classs = c=> document.getElementsByClassName(c)
 
-  //window.anime && addIn(lisp.env, {anime: window.anime})
+  window.anime && addIn(lisp.env, {anime: window.anime})
   kamishibai(document.body, lisp)
   const term = mkLispTerminal(document.body, lisp)
   lisp.kamishibaiError = e=> term.errAlert(e.toString())

@@ -1,7 +1,21 @@
-export default class AlphaChecer {
-    constructor(img) {
+class AlphaCheckers {
+    constructor(objs) {
+        this.checkers = objs.map(o => new AlphaChecker(o.ele, o.click, o.dragstart, o.wheel));
+    }
+    check(e) {
+        return [...this.checkers].reverse().find(c => c.isOnPixel(e));
+    }
+    click(e) { var _a; (_a = this.check(e)) === null || _a === void 0 ? void 0 : _a.click(e); }
+    dragstart(e) { var _a; (_a = this.check(e)) === null || _a === void 0 ? void 0 : _a.dragstart(e); }
+    wheel(e) { var _a; (_a = this.check(e)) === null || _a === void 0 ? void 0 : _a.wheel(e); }
+}
+class AlphaChecker {
+    constructor(img, click = (e) => { }, dragstart = (e) => { }, wheel = (e) => { }) {
         this.width = 0;
         this.img = img;
+        this.click = click;
+        this.dragstart = dragstart;
+        this.wheel = wheel;
         const canvas = document.createElement('canvas');
         const context = canvas.getContext('2d');
         if (!context)
@@ -32,4 +46,5 @@ export default class AlphaChecer {
         return alpha >= 8;
     }
 }
+export { AlphaChecker, AlphaCheckers };
 //# sourceMappingURL=AlphaChecker.js.map

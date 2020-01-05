@@ -8,11 +8,12 @@ const
             : addIn(obj[k] = {}, v)
           : obj[k] = v)),
      obj),
- mkEle = (type: string, ...args: object[]): Element=> addIn(document.createElement(type), ...args),
+ eleAdd = <E extends HTMLElement>(ele: E, ...objs: object[]): E=> (addIn(ele, ...objs), ele),
+ mkEle = (type: string, ...args: object[]): HTMLElement=> eleAdd(document.createElement(type), ...args),
  mix = (...args: any[]): any=> addIn({}, ...args),
  duo = <T>(l: Array<T>, f=(x: T,y: T, index: number): any=>[x,y]): any =>
   l.reduce((pre,a,i)=> pre.concat(i%2 ? [] : [f(a, l[i+1], i/2)]) , <Array<any>>[]),
  tee = <T>(std: T)=> (console.log(std), std),
  teeAll = <Ts extends any[]>(...args: Ts)=> (console.log(...args), args)
 
-export {addIn, mkEle, mix, duo, tee, teeAll}
+export {addIn, eleAdd, mkEle, mix, duo, tee, teeAll}

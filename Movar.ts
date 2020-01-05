@@ -1,13 +1,17 @@
-import {addIn} from './nl.js'
-import AlphaChecker from './AlphaChecker.js'
+import {addIn, eleAdd} from './nl.js'
+import {AlphaCheckers} from './AlphaChecker.js'
+import mkContextmenu from './Contextmenu.js'
 
 const pixToPar = (ele: HTMLElement, point: {x: number, y: number}): void=> {
   const parent = <HTMLElement>ele.parentElement
   ele.style.left = 100 * point.x / parent.clientWidth + '%'
   ele.style.top  = 100 * point.y / parent.clientHeight + '%'
 }
+const relative_path = location.origin + location.pathname
+const convertURI = (uri: string)=> decodeURI(uri).replace(RegExp('^'+ relative_path), '')
 
 export default class Mover {
+  private checkers!: AlphaCheckers
   private elements: Array<HTMLImageElement> = []
   private overlaps: Array<HTMLElement> = []
   private lisp: any
@@ -19,39 +23,32 @@ export default class Mover {
   }
   private ondragend = (e: DragEvent)=> { this.target = null }
   constructor (lisp: any) { this.lisp = lisp }
-  mkDragstart (checker: AlphaChecker) {
-    const self = this
-    return function (this: HTMLElement, e: DragEvent, inloop: boolean): void {
-      if (!inloop) for (const ele of [...self.elements].reverse()) (<Function>ele.ondragstart)(e, true)
-      else if (!self.target && checker.isOnPixel(e)) {
-        this.style.left = this.offsetLeft + 'px'
-        this.style.top  = this.offsetTop + 'px'
-        this.style.margin = ''
-        self.target = {ele: this, start_x: e.pageX - this.offsetLeft, start_y: e.pageY - this.offsetTop}
-      }
-    }
+  click (ele: HTMLElement, e: MouseEvent) {
+    const name = ele.className
+    const env = this.lisp.env[name]
+    const items = Object.entries(env).filter(([k, v]:[string, any])=> v.src)
+                        .map(([k, v]:[string, any])=> ({name: k, act: ()=> eleAdd(ele, v)}))
+    mkContextmenu(e, items)
   }
-  mkOnweel (checker: AlphaChecker) {
-    const self = this
-    return function (this: HTMLElement, e: WheelEvent, inloop: boolean): void {
-      if (!inloop) for (const ele of [...self.elements].reverse()) (<Function>ele.onwheel)(e, true)
-      else if (checker.isOnPixel(e)) {
-        const x = e.deltaY > 0 ? (1/1.1) : 1.1
-        const now_parsent = parseInt(this.style.height)
-        this.style.height = now_parsent * x + '%'
-        e.preventDefault()
-      }
-    }
+  dragstart (ele: HTMLElement, e: DragEvent): void {
+    ele.style.left = ele.offsetLeft + 'px'
+    ele.style.top  = ele.offsetTop + 'px'
+    ele.style.margin = ''
+    this.target = {ele, start_x: e.pageX - ele.offsetLeft, start_y: e.pageY - ele.offsetTop}
+  }
+  wheel (ele: HTMLElement, e: WheelEvent): void {
+    const x = e.deltaY > 0 ? (1/1.1) : 1.1
+    const now_parsent = parseInt(ele.style.height) || 150
+    ele.style.height = now_parsent * x + '%'
+    e.preventDefault()
   }
   editStart (): void {
     const kms = this.lisp.env.kamishibai
     this.overlaps = [kms.log_ele, kms.front_ele, kms.fukidasi, kms.filter_ele]
     this.overlaps.forEach(ele=> addIn(ele, {style: {pointerEvents: 'none'}}))
     this.elements = <Array<HTMLImageElement>>Array.from(kms.layer_ele.children)
-    this.elements.forEach(ele=> {
-      const checker = new AlphaChecker(ele)
-      addIn(ele, {draggable: true, ondragstart: this.mkDragstart(checker), ondragend, onwheel: this.mkOnweel(checker)})
-    })
+    this.checkers = new AlphaCheckers(this.elements.map(ele=> ({ele, click: e=> this.click(ele, e), dragstart: e=> this.dragstart(ele, e), wheel: e=> this.wheel(ele, e)})))
+    this.elements.forEach(ele=> eleAdd(ele, {draggable: true, onclick: (e: MouseEvent)=> this.checkers.click(e), ondragstart: (e: DragEvent)=> this.checkers.dragstart(e), onwheel: (e: WheelEvent)=> this.checkers.wheel(e)}))
     kms.layer_ele.addEventListener('dragover', this.ondragover)
     kms.layer_ele.addEventListener('dragend', this.ondragend)
   }
@@ -62,6 +59,6 @@ export default class Mover {
     this.elements = []
     this.lisp.env.kamishibai.layer_ele.removeEventListener('dragover', this.ondragover)
     this.lisp.env.kamishibai.layer_ele.removeEventListener('dragend', this.ondragend)
-    return eles.map(ele=> `${ele.className} (style 'top "${ele.style.top}" 'left "${ele.style.left}" 'height "${ele.style.height}")`).join('\n')
+    return eles.map(ele=> `(show "${ele.className}" (. ${ele.className} '${Object.entries(this.lisp.env[ele.className]).find(([k,v]: [string, any])=> v.src === convertURI(ele.src))?.[0]}) (style 'top "${ele.style.top}" 'left "${ele.style.left}" 'height "${ele.style.height}"))`).join('\n')
   }   
 }

@@ -11,7 +11,7 @@ class Terminal {
     this.term_ele.appendChild(this.std_in)
     this.std_in.addEventListener('keydown', e=>
       (e.stopPropagation(),
-      e.keyCode === 13 && (
+      e.keyCode === 13 && !e.shiftKey &&(
         e.preventDefault(),
         this.onDataAction(this.std_in.value))))
   }
