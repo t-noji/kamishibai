@@ -1,10 +1,10 @@
-.contextmenu {
+:host {
   position: absolute;
   background-color: white;
   box-shadow: 0 0 4px rgba(0,0,0, 0.4);
 }
-.contextmenu > .item {
+.item {
   padding: 0.3em 0.5em;
   cursor: pointer;
 }
-.contextmenu > .item:hover { background-color: rgba(125,125,125, 0.25); }
+.item:hover { background-color: rgba(125,125,125, 0.2); }

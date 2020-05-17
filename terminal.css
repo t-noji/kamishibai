@@ -1,34 +1,46 @@
-.terminal {
+:host {
   position: absolute;
   top: 2em;
   left: 60%;
-  right: 1em;
+  width: 38%;
   color: white;
   padding: 0.5em;
   background-color: rgba(0,0,0, 0.4);
 }
-.terminal > .std_in {
+:host > .std_in {
+  width: 100%;
   border: none;
   color: white;
   background: rgba(255,255,255, 0.2);
   height: 6em;
 }
-.terminal > .std_out {
+:host > .std_out {
   height: 24em;
   overflow-y:  auto;
 }
-.terminal > .std_out > .out {
+:host > .std_out > .out {
   color: green;
   white-space: pre-wrap;
   word-wrap: break-word;
 }
-.terminal > .std_out > .err {
+:host > .std_out > .err {
   color: red;
   white-space: pre-wrap;
   word-wrap: break-word;
 }
-.terminal > .std_out > .in {
+:host > .std_out > .in {
   color: white;
   white-space: pre-wrap;
   word-wrap: break-word;
+}
+
+/* log hidden */
+:host > .hidden_but {
+  background-color: rgba(255,255,255, 0.5);
+  padding: 0 1em;
+  cursor: pointer;
+  color: black;
+}
+:host > .std_out.log_hidden > .out, .terminal > .std_out.log_hidden > .err {
+  display: none;
 }

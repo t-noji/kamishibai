@@ -7,57 +7,61 @@
  <meta name="apple-mobile-web-app-capable" content="yes">
  <meta name="mobile-web-app-capable" content="yes">
  <meta name="description" content="">
- <title></title>
- <link rel="stylesheet" type="text/css" href="kamishibai.css">
- <link rel="stylesheet" type="text/css" href="terminal.css">
- <link rel="stylesheet" type="text/css" href="contextmenu.css">
+ <title>Kamishibai</title>
  <style type="text/css">
+  body{ background-color: black; margin: 0; }
   #repl-visible-button { position: absolute; left: 45%; z-index: 99; opacity: 0.75; }
   #repl-visible-button img { height: 1.5em; }
   #repl-box { color: white; }
   #editable-button { font-size: 130%; position: absolute; left: 55%; z-index: 99; color: white; cursor: default; text-shadow: 2px 2px rgba(0,0,0, 0.5);}
  </style>
- <script src="anime.js"></script>
- <script type="module">
+<script type="module">
 import {addIn} from './nl.js'
 import {mkLisp} from './lisp.js'
-import {kamishibai} from './kamishibai.js'
-import {mkLispTerminal} from './terminal.js'
+import './kamishibai.js'
+import './terminal.js'
 import Movar from './Movar.js'
-  const lisp = mkLisp()
-  window.addIn = addIn
-  window.lisp = lisp // DevTools Debugging
-  const $id = id=> document.getElementById(id)
-  const $classs = c=> document.getElementsByClassName(c)
+import ImageEditer from './ImageEditer.js'
+import anime from './anime.es.js'
+const lisp = mkLisp()
+window.lisp = lisp
+const $id = id=> document.getElementById(id)
+const $classs = c=> document.getElementsByClassName(c)
 
-  window.anime && addIn(lisp.env, {anime: window.anime})
-  kamishibai(document.body, lisp)
-  const term = mkLispTerminal(document.body, lisp)
-  lisp.kamishibaiError = e=> term.errAlert(e.toString())
+lisp.env.anime = anime
+$id('kami').setLisp(lisp)
+const term = $id('term')
+term.onData(data=> {
+  try { term.write(lisp.exec(data)) }
+  catch (e) { term.errWrite(e.toString()) }
+})
+lisp.env.kamishibaiError = e=> term.errAlert(e.toString())
 
-  const movar = new Movar(lisp)
-  movar.visual = false
-  $id('editable-button').onclick = e=> {
-    if (movar.visual = !movar.visual) movar.editStart()
-    else term.stdAlert(movar.editEnd())
-  }
+const imgediter = new ImageEditer(lisp)
+imgediter.visual = false
+$id('editable-button').onclick = e=> {
+  if (imgediter.visual = !imgediter.visual) imgediter.editStart()
+  else term.stdAlert(imgediter.editEnd())
+}
 
-  // repl visible //
-  const replHidden = e=> term.hidden()
-  $id('repl-visible-button').onclick = replHidden
+// repl visible //
+const replHidden = e=> term.hide()
+$id('repl-visible-button').onclick = replHidden
+new Movar(term)
 
-  // get url param //
-  const url_param = location.search.substring(1).split('&').reduce((r,s)=>{
-    const kv = s.split('=')
-    r[kv[0]] = kv[1]
-    return r
-  }, {})
-  if (url_param.load) lisp.env.load(url_param.load)
-  if (url_param.replbox === 'hidden') replHidden()
+// get url param //
+const url_param = location.search.substring(1).split('&').reduce((r,s)=>{
+  const kv = s.split('=')
+  r[kv[0]] = kv[1]
+  return r
+}, {})
+if (url_param.load) lisp.env['async-load'](url_param.load)
+if (url_param.replbox === 'hidden') replHidden()
 </script>
 </head>
 <body>
  <div id="repl-visible-button"><img src="repl.png"/></div>
  <div id="editable-button">✎</div>
-</body>
+ <kami-shibai id=kami></kami-shibai>
+ <n-term id=term></n-term>
 </html>

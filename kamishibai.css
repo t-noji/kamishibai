@@ -1,4 +1,3 @@
-*{ margin: 0; box-sizing: border-box; }
 @keyframes vertical{
     0% { transform: translateY( 2%); }
   100% { transform: translateY( 0); }
@@ -15,8 +14,6 @@
     0% { transform: translateX(-120%); }
   100% { transform: translateX( 0px); }
 }
-body{ background-color: black; }
-textarea{ width: 100%; }
 
 .fukidashi{
   white-space: pre-wrap;
@@ -56,7 +53,7 @@ textarea{ width: 100%; }
   opacity: 1;
   filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.6)) brightness(97%);
 }
-.switch:after{
+.switch::after{
   position: absolute;
   left: 100%; top: 0;
   content: " ";
@@ -64,24 +61,25 @@ textarea{ width: 100%; }
   border: 0.625em solid transparent;
   border-left-color: rgba(255,255,255, 0.9);
 }
-.select{position: absolute; bottom: 4em; font-size: 140%;}
+.select {position: absolute; bottom: 4em; font-size: 140%;}
 .select .switch{
   opacity: 1;
   padding-left: 4em; padding-right: 2em; background-color: white;
 }
-.select .switch:after{ border-left-color: white; }
+.select .switch::after{ border-left-color: white; }
 
 /*** optional ***/
-.wide { position: relative; width: 100%; }
-.wide:before { content: ""; display: block; padding-top: 56.23%; }
-.standard { position: relative; width: 100%; }
-.standard:before { content: ""; display: block; padding-top: 75%; }
-.standard .fukidashi{ left: 5%; width: 90%; }
-.cinesco { position: relative; width: 100%; }
-.cinesco:before { content: ""; display: block; padding-top: 42.5531915%; }
-.rotate-wide { position: relative; width: 100%; }
-.rotate-wide:before { content: ""; display: block; padding-top: 177.7777%; }
-.rotate-wide .fukidashi{ left: 2.5%; width: 95%; height: 10em; font-size: calc(95vw / 20); }
-.rotate-wide .select{ bottom: 10em; }
-.rotate-wide .layer img { display: none; }
-.rotate-wide .layer .talk{ display: block; }
+:host { display: block; }
+:host(.wide) { position: relative; width: 100%; }
+:host(.wide)::before { content: ""; display: block; padding-top: 56.23%; }
+:host(.standard) { position: relative; width: 100%; }
+:host(.standard)::before { content: ""; display: block; padding-top: 75%; }
+:host(.standard) .fukidashi{ left: 5%; width: 90%; }
+:host(.cinesco) { position: relative; width: 100%; }
+:host(.cinesco)::before { content: ""; display: block; padding-top: 42.5531915%; }
+:host(.rotate-wide) { position: relative; width: 100%; }
+:host(.rotate-wide)::before { content: ""; display: block; padding-top: 177.7777%; }
+:host(.rotate-wide) .fukidashi{ left: 2.5%; width: 95%; height: 10em; font-size: calc(95vw / 20); }
+:host(.rotate-wide) .select{ bottom: 10em; }
+:host(.rotate-wide) .layer img { display: none; }
+:host(.rotate-wide) .layer .talk{ display: block; }

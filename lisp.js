@@ -40,8 +40,18 @@ const
         (r[k] = objDigger(obj[k]), r), isArray(obj) ? [] : {}),
   isNativeFunc = f=> f.toString().indexOf('[native code]') !== -1
 
+const args2env = (env, names=[], vals=[])=> {
+  const slice_index = (names.indexOf('&') +1) || names.length
+  const new_env = names.slice(0, slice_index).reduce((pre, name, i)=>
+      (name === '&'
+        ? pre[names[i+1]] = {value: vals.slice(i), writable: true} // & hoge<-
+        : pre[name] = {value: vals[i], writable: true},
+       pre),
+      {})
+  return Object.create(env, new_env)
+}
 const grobal_base = {
-  grobal: this, 'window': window, // this is window or grobal or module
+  'window': window,
   t: true,
   'true': true,
   'false': false,
@@ -120,31 +130,7 @@ const grobal_base = {
   '-chainf': (first, ...args)=> args.reduce((pre,m)=>
     Array.isArray(m) ? pre[m[0]](...m.slice(1)) : pre[m](), first)
 }
-
-export const mkLisp = ()=> {
-/*{
-  n_list, // lisp内で利用可能な関数リスト
-  macro,  // lisp内で利用可能なマクロリスト
-  reader_macro, // リーダマクロリスト
-  exec // (String body)=>result / lisp実行用関数
-}*/
-
-const n_list = mkValFreezeObj(Object.assign({
-  load (url) {
-    if (!XMLHttpRequest) return str=> str;
-    const xhr = new XMLHttpRequest()
-    xhr.open('GET', url, false) // sync //
-    xhr.onload = ()=> xhr.status === 200 && exec(xhr.responseText)
-    xhr.send()
-  }
-}, grobal_base))
-
-const macro = mkValFreezeObj({
-  defmacro: (name, namelist, body)=>{
-    macro[name] = (...args)=>
-      macroexpand(exe(args2env(n_list, namelist, args), body))
-    return ['undefined']
-  },
+const macro_base = {
   backquote: (()=>{
     const lflat = (l, key, f=x=>x)=>
       l.indexOf(key) === -1
@@ -172,7 +158,41 @@ const macro = mkValFreezeObj({
         ? ['quote', args[0]]
         : lflat(args, '@', bq)
   })()
-})
+}
+
+export const mkLisp = ()=> {
+/*{
+  env, // lisp内で利用可能な関数リスト
+  macro,  // lisp内で利用可能なマクロリスト
+  reader_macro, // リーダマクロリスト
+  exec // (String body)=>result / lisp実行用関数
+}*/
+
+const n_list = mkValFreezeObj(Object.assign({
+  load (url) {
+    if (!XMLHttpRequest) return str=> str
+    const xhr = new XMLHttpRequest()
+    xhr.open('GET', url, false) // sync //
+    xhr.onload = ()=> xhr.status === 200 && exec(xhr.responseText)
+    xhr.send()
+  },
+  'async-load' (url) {
+    if (!XMLHttpRequest) return str=> str
+    const xhr = new XMLHttpRequest()
+    xhr.open('GET', url, true) // sync //
+    xhr.onload = ()=> xhr.status === 200 && exec(xhr.responseText)
+    xhr.send()
+  },
+  getGrobal: ()=> n_list
+}, grobal_base))
+
+const macro = mkValFreezeObj(Object.assign({
+  defmacro (name, namelist, body) {
+    this[name] = (...args)=>
+      macroexpand(exe(args2env(n_list, namelist, args), body))
+    return ['undefined']
+  }
+}, macro_base))
 
 const
   macroexpand = b=> // ((a 1)) 
@@ -180,7 +200,9 @@ const
       ? b
       : b[0] in macro
         ? macro[b[0]](... b.slice(1).map(macroexpand))
-        : b.map(macroexpand),
+        : b.map(macroexpand)
+
+const
   found = (env, str)=>{
     if (typeof str === 'function') return str
     if (!(str in env)) throw new Error(`無いよ: ${str} in [${inkeys(env)}]`)
@@ -202,19 +224,8 @@ const
               else return f(... b.slice(1).map(b=> exe(env,b)))
             })()
 
-const args2env = (env, names=[], vals=[])=>{
-  const slice_index = (names.indexOf('&') +1) || names.length
-  const new_env = names.slice(0, slice_index).reduce((pre, name, i)=>
-      (name === '&'
-        ? pre[names[i+1]] = {value: vals.slice(i), writable: true} // & hoge<-
-        : pre[name] = {value: vals[i], writable: true},
-       pre),
-      {})
-  return Object.create(env, new_env)
-}
-
 // 特殊式
-const special = {
+const special = Object.freeze({
   progn: (env, ...body)=> body.map((b)=>exe(env, b))[body.length - 1],
   eval: (env,body)=> special.progn(env, ...macroexpand(exe(env,body))),
   'if': (env,flag, tbody, fbody=[])=> exe(env, exe(env,flag) ? tbody : fbody),
@@ -236,7 +247,7 @@ const special = {
   quote: (env, ...s)=> s.length === 1 ? s[0] : s,
   str: (env, ...arg)=> String(...arg),
   'undefined': (env)=> undefined
-}
+})
 
 // 評価
 const
@@ -320,8 +331,8 @@ exec(`
 
 return {
   env: n_list,
-  macro: macro,
-  reader_macros: reader_macros,
-  exec: exec,
+  macro,
+  reader_macros,
+  exec,
 }
 }
